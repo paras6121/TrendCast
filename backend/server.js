@@ -71,8 +71,7 @@ app.get('/auth/google/callback',
   (req, res) => {
     const token = generateToken({ id: req.user.id, email: req.user.email, name: req.user.name, avatar: req.user.avatar });
     // Redirect to frontend with token in URL — frontend grabs it and stores in localStorage
-    res.redirect(`${FRONTEND_URL}?token=${token}&name=${encodeURIComponent(req.user.name)}&email=${encodeURIComponent(req.user.email)}&avatar=${encodeURIComponent(req.user.avatar || '')}`);
-  }
+res.redirect("https://your-frontend.vercel.app/dashboard");  }
 );
 
 // ── EMAIL AUTH ROUTES ─────────────────────────────────────────────────────────
