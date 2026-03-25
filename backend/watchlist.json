@@ -1,0 +1,20 @@
+{
+  "items": [
+    {
+      "id": "1774264316334",
+      "keyword": "cargo pants",
+      "email": "default",
+      "addedAt": "2026-03-23T11:11:56.334Z",
+      "lastScore": 54,
+      "lastChecked": "2026-03-23T11:35:31.667Z",
+      "history": [
+        {
+          "date": "2026-03-23T11:35:31.667Z",
+          "score": 54,
+          "trend": "UNKNOWN"
+        }
+      ],
+      "lastTrend": "UNKNOWN"
+    }
+  ]
+}
