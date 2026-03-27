@@ -1,24 +1,10 @@
 import { useState } from "react";
 
-const DIRECTION_COLOR = {
-  RISING: "#4ade80",
-  STABLE: "#fbbf24",
-  DECLINING: "#f87171",
-};
+const DIRECTION_COLOR = { RISING: "#4ade80", STABLE: "#fbbf24", DECLINING: "#f87171" };
+const DIRECTION_ARROW = { RISING: "↑", STABLE: "→", DECLINING: "↓" };
+const MOMENTUM_COLOR = { EXPLOSIVE: "#ff6b6b", HIGH: "#4ade80", MEDIUM: "#fbbf24", LOW: "#8aabdd" };
 
-const DIRECTION_ARROW = {
-  RISING: "↑",
-  STABLE: "→",
-  DECLINING: "↓",
-};
-
-const MOMENTUM_COLOR = {
-  EXPLOSIVE: "#ff6b6b",
-  HIGH: "#4ade80",
-  MEDIUM: "#fbbf24",
-  LOW: "#8aabdd",
-};
-
+// v2 - fixed auth
 export default function CategoryIntelligence() {
   const [category, setCategory] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,15 +17,17 @@ export default function CategoryIntelligence() {
     setError(null);
     setData(null);
     try {
-      
-const res = await fetch("https://trendcast-backend.onrender.com/api/category-intelligence", {
-  method: "POST",
-  headers: { 
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${localStorage.getItem("tc_token")}`
-  },
-  body: JSON.stringify({ category }),
-});
+      const tk = localStorage.getItem("tc_token");
+      console.log("Sending token:", tk ? tk.substring(0, 20) + "..." : "NULL");
+      const res = await fetch("https://trendcast-backend.onrender.com/api/category-intelligence", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + tk
+        },
+        body: JSON.stringify({ category }),
+      });
+      console.log("Response status:", res.status);
       if (!res.ok) throw new Error("Server error: " + res.status);
       const result = await res.json();
       setData(result.intelligence);
@@ -52,24 +40,14 @@ const res = await fetch("https://trendcast-backend.onrender.com/api/category-int
 
   return (
     <div>
-      {/* Search */}
       <div style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 16, padding: 24, marginBottom: 24 }}>
-        <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8aabdd", marginBottom: 12 }}>
-          Category Intelligence — Deep Dive
-        </div>
-        <div style={{ fontSize: 13, color: "#4a5a7a", marginBottom: 16 }}>
-          Enter a broad category to get fits, colors, fabrics and price segments that are trending right now
-        </div>
+        <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8aabdd", marginBottom: 12 }}>Category Intelligence — Deep Dive</div>
+        <div style={{ fontSize: 13, color: "#4a5a7a", marginBottom: 16 }}>Enter a broad category to get fits, colors, fabrics and price segments that are trending right now</div>
         <div style={{ display: "flex", gap: 10 }}>
-          <input
-            value={category}
-            onChange={e => setCategory(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && analyze()}
+          <input value={category} onChange={e => setCategory(e.target.value)} onKeyDown={e => e.key === "Enter" && analyze()}
             placeholder="e.g. bottomwear, kurtas, dresses, menswear, ethnic wear..."
             style={{ flex: 1, background: "#0a0f1e", border: "1px solid #243050", borderRadius: 8, padding: "10px 14px", color: "#ffffff", fontSize: 14, outline: "none", fontFamily: "'Geist', sans-serif" }}
-            onFocus={e => (e.target.style.borderColor = "#ffffff")}
-            onBlur={e => (e.target.style.borderColor = "#243050")}
-          />
+            onFocus={e => (e.target.style.borderColor = "#ffffff")} onBlur={e => (e.target.style.borderColor = "#243050")} />
           <button onClick={analyze} disabled={loading || !category.trim()}
             style={{ padding: "10px 24px", background: loading ? "#111d35" : "#ffffff", color: loading ? "#8aabdd" : "#0a0f1e", border: "none", borderRadius: 8, fontSize: 13, fontFamily: "'Geist', sans-serif", fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
             {loading ? "Analyzing..." : "Deep Dive →"}
@@ -77,7 +55,7 @@ const res = await fetch("https://trendcast-backend.onrender.com/api/category-int
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
           {["Bottomwear", "Kurtas", "Dresses", "Menswear", "Ethnic wear", "Activewear", "Denims", "Co-ord sets"].map(s => (
-            <button key={s} onClick={() => { setCategory(s); }}
+            <button key={s} onClick={() => setCategory(s)}
               style={{ background: "#111d35", border: "1px solid #1a2540", borderRadius: 16, padding: "5px 12px", color: "#8aabdd", fontSize: 12, fontFamily: "'Geist', sans-serif", cursor: "pointer" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = "#ffffff"; e.currentTarget.style.color = "#ffffff"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "#1a2540"; e.currentTarget.style.color = "#8aabdd"; }}>
@@ -87,16 +65,12 @@ const res = await fetch("https://trendcast-backend.onrender.com/api/category-int
         </div>
       </div>
 
-      {error && (
-        <div style={{ background: "#1a0a0a", border: "1px solid #3a1515", borderRadius: 10, padding: "14px 18px", color: "#f87171", fontSize: 14, marginBottom: 16 }}>{error}</div>
-      )}
+      {error && <div style={{ background: "#1a0a0a", border: "1px solid #3a1515", borderRadius: 10, padding: "14px 18px", color: "#f87171", fontSize: 14, marginBottom: 16 }}>{error}</div>}
 
       {loading && (
         <div style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 16, padding: 40, textAlign: "center" }}>
           <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 16 }}>
-            {[0,1,2].map(i => (
-              <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "#ffffff", animation: `pulse 1.2s ease-in-out ${i*0.2}s infinite` }} />
-            ))}
+            {[0,1,2].map(i => <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "#ffffff", animation: `pulse 1.2s ease-in-out ${i*0.2}s infinite` }} />)}
           </div>
           <div style={{ fontSize: 14, color: "#8aabdd" }}>Analyzing {category} category across all sources...</div>
         </div>
@@ -104,31 +78,22 @@ const res = await fetch("https://trendcast-backend.onrender.com/api/category-int
 
       {data && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-          {/* Summary */}
           <div style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 16, padding: 24 }}>
             <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8aabdd", marginBottom: 12 }}>Category Overview — {data.category}</div>
             <p style={{ fontSize: 15, color: "#ffffff", lineHeight: 1.6, fontFamily: "'Instrument Serif', serif", marginBottom: 12 }}>{data.summary}</p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <div style={{ background: "#0a0f1e", border: "1px solid #1a2540", borderRadius: 8, padding: "8px 14px", fontSize: 12, color: "#8aabdd" }}>
-                👥 {data.targetAudience}
-              </div>
-              <div style={{ background: "#0a0f1e", border: "1px solid #1a2540", borderRadius: 8, padding: "8px 14px", fontSize: 12, color: "#fbbf24" }}>
-                🗓 {data.seasonalNote}
-              </div>
+              <div style={{ background: "#0a0f1e", border: "1px solid #1a2540", borderRadius: 8, padding: "8px 14px", fontSize: 12, color: "#8aabdd" }}>👥 {data.targetAudience}</div>
+              <div style={{ background: "#0a0f1e", border: "1px solid #1a2540", borderRadius: 8, padding: "8px 14px", fontSize: 12, color: "#fbbf24" }}>🗓 {data.seasonalNote}</div>
             </div>
           </div>
 
-          {/* Peaking Now */}
           {data.peakingNow?.length > 0 && (
             <div style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 16, padding: 24 }}>
               <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8aabdd", marginBottom: 16 }}>Peaking Right Now</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {data.peakingNow.map((item, i) => (
                   <div key={i} style={{ background: "#0a0f1e", border: "1px solid #1a2540", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ background: MOMENTUM_COLOR[item.momentum] + '22', border: "1px solid " + MOMENTUM_COLOR[item.momentum] + '44', borderRadius: 6, padding: "3px 8px", fontSize: 10, color: MOMENTUM_COLOR[item.momentum], fontWeight: 600, whiteSpace: "nowrap" }}>
-                      {item.momentum}
-                    </div>
+                    <div style={{ background: MOMENTUM_COLOR[item.momentum] + '22', border: "1px solid " + MOMENTUM_COLOR[item.momentum] + '44', borderRadius: 6, padding: "3px 8px", fontSize: 10, color: MOMENTUM_COLOR[item.momentum], fontWeight: 600, whiteSpace: "nowrap" }}>{item.momentum}</div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, color: "#ffffff", fontWeight: 500, marginBottom: 2 }}>{item.item}</div>
                       <div style={{ fontSize: 12, color: "#4a5a7a" }}>{item.reason}</div>
@@ -139,10 +104,7 @@ const res = await fetch("https://trendcast-backend.onrender.com/api/category-int
             </div>
           )}
 
-          {/* Fits + Colors side by side */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-
-            {/* Fits */}
             {data.fits?.length > 0 && (
               <div style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 16, padding: 24 }}>
                 <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8aabdd", marginBottom: 16 }}>Fit Trends</div>
@@ -165,8 +127,6 @@ const res = await fetch("https://trendcast-backend.onrender.com/api/category-int
                 </div>
               </div>
             )}
-
-            {/* Colors */}
             {data.colors?.length > 0 && (
               <div style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 16, padding: 24 }}>
                 <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8aabdd", marginBottom: 16 }}>Color Trends</div>
@@ -194,10 +154,7 @@ const res = await fetch("https://trendcast-backend.onrender.com/api/category-int
             )}
           </div>
 
-          {/* Fabrics + Price Segments */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-
-            {/* Fabrics */}
             {data.fabrics?.length > 0 && (
               <div style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 16, padding: 24 }}>
                 <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8aabdd", marginBottom: 16 }}>Fabric Trends</div>
@@ -219,8 +176,6 @@ const res = await fetch("https://trendcast-backend.onrender.com/api/category-int
                 </div>
               </div>
             )}
-
-            {/* Price Segments */}
             {data.priceSegments?.length > 0 && (
               <div style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 16, padding: 24 }}>
                 <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8aabdd", marginBottom: 16 }}>Price Segment Demand</div>
@@ -246,7 +201,6 @@ const res = await fetch("https://trendcast-backend.onrender.com/api/category-int
             )}
           </div>
 
-          {/* Retailer Action */}
           {data.topRetailerAction && (
             <div style={{ background: "#0a1428", border: "1px solid #1a3a5a", borderRadius: 16, padding: 20, display: "flex", gap: 16, alignItems: "center" }}>
               <div style={{ fontSize: 24, flexShrink: 0 }}>💡</div>
