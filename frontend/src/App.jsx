@@ -6,8 +6,7 @@ import Watchlist from "./components/Watchlist";
 import TrendHistory from "./components/TrendHistory";
 import CategoryIntelligence from "./components/CategoryIntelligence";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
-
+const API = "https://trendcast-backend.onrender.com";
 const G = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
