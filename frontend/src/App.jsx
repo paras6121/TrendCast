@@ -455,7 +455,7 @@ export default function App() {
 
         {heroMode === "category" && (
   <LockedFeature isLoggedIn={!!user} onUnlock={openAuth} label="Sign in to use Category Intelligence">
-    <CategoryIntelligence token={token} />
+    <CategoryIntelligence />
   </LockedFeature>
 )}
         )
