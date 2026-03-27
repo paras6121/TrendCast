@@ -31,7 +31,7 @@ export default function CategoryIntelligence() {
     setError(null);
     setData(null);
     try {
-      const res = await fetch("http://localhost:3001/api/category-intelligence", {
+      const res = await fetch("https://trendcast-backend.onrender.com/api/category-intelligence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ category }),

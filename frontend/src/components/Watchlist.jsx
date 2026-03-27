@@ -11,7 +11,7 @@ export default function Watchlist({ onPredict }) {
 
   async function fetchWatchlist() {
     try {
-      const res = await fetch("http://localhost:3001/api/watchlist");
+      const res = await fetch("https://trendcast-backend.onrender.com/api/watchlist");
       const data = await res.json();
       setItems(data.items || []);
     } catch (err) {
@@ -23,7 +23,7 @@ export default function Watchlist({ onPredict }) {
     if (!newKeyword.trim()) return;
     setLoading(true);
     try {
-      await fetch("http://localhost:3001/api/watchlist/add", {
+      await fetch("https://trendcast-backend.onrender.com/api/watchlist/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keyword: newKeyword.trim() }),
@@ -39,7 +39,7 @@ export default function Watchlist({ onPredict }) {
 
   async function removeKeyword(id) {
     try {
-      await fetch("http://localhost:3001/api/watchlist/" + id, { method: "DELETE" });
+      await fetch("https://trendcast-backend.onrender.com/api/watchlist/" + id, { method: "DELETE" });
       fetchWatchlist();
     } catch (err) {
       console.error("Remove error:", err);
