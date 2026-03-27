@@ -17,7 +17,7 @@ import { scrapeTwitter } from './scrapers/twitter.js';
 import { simulateMyntra } from './scrapers/simulated.js';
 import { aggregateData } from './aggregator.js';
 import { predictTrends, expandCategory, analyzeCategoryIntelligence } from './claude.js';
-import { generateTrendReport } from './pdfGenerator.js';
+import { generateTrendReport } from './PdfGenerator.js';
 import { addToWatchlist, getWatchlist, removeFromWatchlist, updateWatchlistScore } from './watchlist.js';
 
 const app = express();
