@@ -12,7 +12,7 @@ import { scrapeGoogleTrends } from './scrapers/googleTrends.js';
 import { scrapeAmazon } from './scrapers/amazon.js';
 import { scrapeYoutube } from './scrapers/youtube.js';
 import { scrapeReddit } from './scrapers/reddit.js';
-import { scrapeGoogleShopping } from './scrapers/googleShopping.js';
+import { scrapeGoogleShopping } from './scrapers/googleshopping.js';
 import { scrapeTwitter } from './scrapers/twitter.js';
 import { simulateMyntra } from './scrapers/simulated.js';
 import { aggregateData } from './aggregator.js';
