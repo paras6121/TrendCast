@@ -54,10 +54,13 @@ passport.use(new GoogleStrategy({
   }
 }));
 
-passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser(async (id, done) => {
-    const { findUserById } = await import('./users.js');
-  done(null, findUserById(id));
+  try {
+    const user = findUserById(id);
+    done(null, user);
+  } catch (err) {
+    done(err, null);
+  }
 });
 
 // ── GOOGLE AUTH ROUTES ────────────────────────────────────────────────────────
