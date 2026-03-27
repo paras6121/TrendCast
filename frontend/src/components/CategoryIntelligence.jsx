@@ -31,11 +31,15 @@ export default function CategoryIntelligence() {
     setError(null);
     setData(null);
     try {
-      const res = await fetch("https://trendcast-backend.onrender.com/api/category-intelligence", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category }),
-      });
+      const token = localStorage.getItem("tc_token");
+const res = await fetch("https://trendcast-backend.onrender.com/api/category-intelligence", {
+  method: "POST",
+  headers: { 
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`
+  },
+  body: JSON.stringify({ category }),
+});
       if (!res.ok) throw new Error("Server error: " + res.status);
       const result = await res.json();
       setData(result.intelligence);
