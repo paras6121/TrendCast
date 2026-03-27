@@ -6,7 +6,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
 import { hashPassword, comparePassword, generateToken, requireAuth } from './auth.js';
-import { findUserByEmail, createUser, findOrCreateGoogleUser } from './users.js';
+import { findUserByEmail, createUser, findOrCreateGoogleUser, findUserById } from './users.js';
 
 import { scrapeGoogleTrends } from './scrapers/googleTrends.js';
 import { scrapeAmazon } from './scrapers/amazon.js';
@@ -39,7 +39,7 @@ app.use(passport.session());
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: process.env.GOOGLE_CALLBACK_URL || 'callbackURL: "https://TrendCast.onrender.com/auth/google/callback"',
+  callbackURL: process.env.GOOGLE_CALLBACK_URL || 'https://trendcast-backend.onrender.com/auth/google/callback',
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     const user = findOrCreateGoogleUser({
@@ -74,7 +74,7 @@ app.get('/auth/google/callback',
   (req, res) => {
     const token = generateToken({ id: req.user.id, email: req.user.email, name: req.user.name, avatar: req.user.avatar });
     // Redirect to frontend with token in URL — frontend grabs it and stores in localStorage
-res.redirect("https://your-frontend.vercel.app/dashboard");  }
+res.redirect(`${FRONTEND_URL}?token=${token}&name=${encodeURIComponent(req.user.name)}&email=${encodeURIComponent(req.user.email)}&avatar=${encodeURIComponent(req.user.avatar || '')}`);  }
 );
 
 // ── EMAIL AUTH ROUTES ─────────────────────────────────────────────────────────
