@@ -19,7 +19,7 @@ const MOMENTUM_COLOR = {
   LOW: "#8aabdd",
 };
 
-export default function CategoryIntelligence() {
+export default function CategoryIntelligence({ token }) {
   const [category, setCategory] = useState("");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
@@ -31,7 +31,7 @@ export default function CategoryIntelligence() {
     setError(null);
     setData(null);
     try {
-      const token = localStorage.getItem("tc_token");
+      
 const res = await fetch("https://trendcast-backend.onrender.com/api/category-intelligence", {
   method: "POST",
   headers: { 
