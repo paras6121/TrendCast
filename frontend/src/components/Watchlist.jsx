@@ -113,4 +113,54 @@ export default function Watchlist({ onPredict }) {
           {items.map(item => (
             <div key={item.id} style={{ background: "#0a0f1e", border: "1px solid #1a2540", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}></div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: 14, color: "#ffffff", fontWeight: 500 }}>{item.keyword}</span>
+                  {item.lastTrend && (
+                    <span style={{ fontSize: 12, color: getTrendColor(item.lastTrend), fontWeight: 600 }}>
+                      {getTrendArrow(item.lastTrend)} {item.lastTrend?.replace(/_/g, ' ')}
+                    </span>
+                  )}
+                </div>
+                {item.lastScore !== null && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ flex: 1, background: "#1a2540", borderRadius: 3, height: 4 }}>
+                      <div style={{ width: (item.lastScore || 0) + "%", height: "100%", background: "#ffffff", borderRadius: 3, transition: "width 0.8s ease" }} />
+                    </div>
+                    <span style={{ fontSize: 11, color: "#8aabdd", minWidth: 40 }}>{item.lastScore}/100</span>
+                  </div>
+                )}
+                {item.history && item.history.length > 1 && (
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 20, marginTop: 6 }}>
+                    {item.history.slice(-8).map((h, i) => (
+                      <div key={i} title={"Score: " + h.score}
+                        style={{ flex: 1, height: Math.max(2, (h.score / 100) * 18) + "px", background: i === item.history.slice(-8).length - 1 ? "#ffffff" : "#243050", borderRadius: "1px 1px 0 0" }} />
+                    ))}
+                  </div>
+                )}
+                {item.lastChecked && (
+                  <div style={{ fontSize: 10, color: "#2a3a5a", marginTop: 4 }}>
+                    Last checked: {new Date(item.lastChecked).toLocaleDateString('en-IN')}
+                  </div>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => onPredict([item.keyword])}
+                  style={{ padding: "6px 12px", background: "#111d35", border: "1px solid #1a2540", borderRadius: 6, color: "#8aabdd", fontSize: 11, cursor: "pointer", fontFamily: "'Geist', sans-serif" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#ffffff"; e.currentTarget.style.color = "#ffffff"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#1a2540"; e.currentTarget.style.color = "#8aabdd"; }}>
+                  Predict
+                </button>
+                <button onClick={() => removeKeyword(item.id)}
+                  style={{ padding: "6px 10px", background: "none", border: "1px solid #1a2540", borderRadius: 6, color: "#3a4a6a", fontSize: 11, cursor: "pointer", fontFamily: "'Geist', sans-serif" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#f87171"; e.currentTarget.style.color = "#f87171"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#1a2540"; e.currentTarget.style.color = "#3a4a6a"; }}>
+                  ✕
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
