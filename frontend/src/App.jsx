@@ -458,7 +458,7 @@ export default function App() {
     <CategoryIntelligence token={token} />
   </LockedFeature>
 )}
-        )}
+        )
       </div>
 
       {/* LOADING */}

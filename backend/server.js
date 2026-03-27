@@ -24,7 +24,11 @@ const app = express();
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-app.use(cors({ origin: FRONTEND_URL, credentials: true }));
+app.use(cors({ 
+  origin: FRONTEND_URL, 
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use(session({
   secret: process.env.SESSION_SECRET || 'session_secret_change_me',
