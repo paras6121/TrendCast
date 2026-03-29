@@ -274,7 +274,7 @@ Respond ONLY with a valid JSON object in this exact format, no markdown, no extr
 
     const message = await client.messages.create({
       model: 'claude-opus-4-5',
-      max_tokens: 4000,
+      max_tokens: 8000,
       messages: [{ role: 'user', content }]
     });
 
@@ -339,9 +339,37 @@ Respond ONLY with valid JSON, no markdown, no extra text:
       messages: [{ role: 'user', content }]
     });
 
-    const raw = message.content[0].text.replace(/```json|```/g, '').trim();
-    const advice = JSON.parse(raw);
-    res.json({ success: true, advice });
+  const raw = message.content[0].text.replace(/```json|```/g, '').trim();
+
+// Try to fix truncated JSON by completing it
+let advice;
+try {
+  advice = JSON.parse(raw);
+} catch {
+  // JSON was cut off — try to salvage it
+  let fixed = raw;
+  // Count unclosed braces and brackets
+  let braces = 0, brackets = 0;
+  for (const ch of fixed) {
+    if (ch === '{') braces++;
+    else if (ch === '}') braces--;
+    else if (ch === '[') brackets++;
+    else if (ch === ']') brackets--;
+  }
+  // Remove trailing incomplete entry
+  const lastComplete = fixed.lastIndexOf('},');
+  if (lastComplete > 0) fixed = fixed.substring(0, lastComplete + 1);
+  // Close all open brackets and braces
+  while (brackets > 0) { fixed += ']'; brackets--; }
+  while (braces > 0) { fixed += '}'; braces--; }
+  try {
+    advice = JSON.parse(fixed);
+  } catch {
+    // Last resort — ask Claude for shorter response
+    return res.status(500).json({ error: 'Response too long. Please try with fewer details filled in.' });
+  }
+}
+res.json({ success: true, advice });
   } catch (err) {
     console.error('[PersonalizedStyling] Error:', err);
     res.status(500).json({ error: err.message });
