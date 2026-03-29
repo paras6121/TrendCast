@@ -230,16 +230,7 @@ export default function App() {
           <span style={{ fontSize: 10, background: "#ffffff", color: "#0a0f1e", padding: "2px 6px", borderRadius: 4, letterSpacing: "0.08em", marginLeft: 4, fontWeight: 600 }}>INDIA</span>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {["Google", "Amazon", "Reddit", "YouTube"].map(s => (
-            <span key={s} style={{ fontSize: 11, color: "#8aabdd", background: "#111d35", padding: "3px 8px", borderRadius: 4 }}>{s}</span>
-          ))}
-          <span style={{ fontSize: 11, color: "#c8a96e", background: "#1e1a10", border: "1px solid #3a3010", padding: "3px 8px", borderRadius: 4 }}>Claude AI</span>
-
-          {/* Style AI Nav Button */}
-          <button onClick={() => { if (!user) { openAuth(); return; } setActiveNav(activeNav === "style" ? "home" : "style"); setShowWatchlist(false); }}
-            style={{ marginLeft: 4, padding: "6px 14px", background: activeNav === "style" ? "#ffffff" : "#111d35", color: activeNav === "style" ? "#0a0f1e" : "#8aabdd", border: "1px solid #1a2540", borderRadius: 6, fontSize: 12, fontFamily: "'Geist', sans-serif", cursor: "pointer" }}>
-            ✨ Style AI
-          </button>
+          
 
           {user ? (
             <>
