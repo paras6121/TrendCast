@@ -227,7 +227,65 @@ app.delete('/api/watchlist/:id', requireAuth, async (req, res) => {
     res.json({ success: true, ...result });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
+app.post('/api/style-advisor', requireAuth, async (req, res) => {
+  const { skinTone, height, weight, faceShape, event, accessories, imageBase64 } = req.body;
+  try {
+    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+    let content = [];
+
+    if (imageBase64) {
+      content.push({
+        type: 'image',
+        source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 }
+      });
+    }
+
+    const prompt = `You are a professional fashion stylist and color analyst specializing in Indian fashion and skin tones.
+
+Analyze the following person's details and provide personalized styling advice:
+${skinTone ? `- Skin tone: ${skinTone}` : ''}
+${height ? `- Height: ${height}` : ''}
+${weight ? `- Body type/weight: ${weight}` : ''}
+${faceShape ? `- Face shape: ${faceShape}` : ''}
+${event ? `- Occasion/Event: ${event}` : ''}
+${accessories ? `- Accessories they have: ${accessories}` : ''}
+${imageBase64 ? '- A photo has been provided, analyze their features from it.' : ''}
+
+Respond ONLY with a valid JSON object in this exact format, no markdown, no extra text:
+{
+  "colorPalette": [
+    { "name": "color name", "hex": "#hexcode", "reason": "why this color suits them", "season": "when to wear" }
+  ],
+  "avoidColors": [
+    { "name": "color name", "hex": "#hexcode", "reason": "why to avoid" }
+  ],
+  "outfitRecommendations": [
+    { "outfit": "outfit name", "description": "detailed description", "colors": ["color1", "color2"], "occasion": "when to wear", "tip": "styling tip" }
+  ],
+  "faceshapeAdvice": "advice about necklines and accessories for their face shape",
+  "bodyAdvice": "advice about cuts and silhouettes for their body type",
+  "overallStyle": "their overall style personality in 2-3 sentences",
+  "topPick": "the single best outfit recommendation for their next event"
+}`;
+
+    content.push({ type: 'text', text: prompt });
+
+    const message = await client.messages.create({
+      model: 'claude-opus-4-5',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content }]
+    });
+
+    const raw = message.content[0].text.replace(/```json|```/g, '').trim();
+    const advice = JSON.parse(raw);
+    res.json({ success: true, advice });
+  } catch (err) {
+    console.error('[StyleAdvisor] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 app.get('/health', (_, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3001;
