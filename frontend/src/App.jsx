@@ -7,11 +7,12 @@ import TrendHistory from "./components/TrendHistory";
 import CategoryIntelligence from "./components/CategoryIntelligence";
 import StyleAdvisor from "./components/StyleAdvisor";
 import PersonalizedStyling from "./components/PersonalizedStyling";
+
 const API = "https://trendcast-backend.onrender.com";
 const G = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0a0f1e; color: #ffffff; font-family: 'Geist', sans-serif; }
+  body { background: #0a0f1e; color: #ffffff; font-family: 'Geist', sans-serif; overflow-x: hidden; }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: #0a0f1e; }
   ::-webkit-scrollbar-thumb { background: #243050; border-radius: 2px; }
@@ -36,6 +37,23 @@ const G = `
   .lock-badge:hover { border-color: #4a6aaa; color: #ffffff; }
   .divider { display: flex; align-items: center; gap: 12px; color: #2a3550; font-size: 12px; margin: 4px 0; }
   .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #1a2540; }
+
+  /* ── MOBILE RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .nav-inner { flex-wrap: wrap; height: auto !important; padding: 10px 16px !important; gap: 8px; }
+    .nav-logo { flex: 1; }
+    .nav-right { width: 100%; justify-content: flex-end; gap: 6px; }
+    .nav-user-name { display: none; }
+    .hero-section { padding: 40px 16px 40px !important; }
+    .section-pad { padding-left: 16px !important; padding-right: 16px !important; }
+    .stats-row { flex-wrap: wrap; }
+    .stats-row > div { min-width: 80px !important; flex: 1; }
+    .mode-toggle { width: 100% !important; }
+    .mode-toggle button { padding: 8px 10px !important; font-size: 11px !important; }
+    .results-grid { padding: 0 16px 60px !important; }
+    .footer-inner { padding: 16px !important; flex-direction: column; text-align: center; }
+    .modal-card { padding: 28px 20px !important; }
+  }
 `;
 
 function AuthModal({ onLogin, onClose }) {
@@ -133,8 +151,7 @@ export default function App() {
   const [token, setToken] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [activeNav, setActiveNav] = useState("home"); // "home" | "style"
-
+  const [activeNav, setActiveNav] = useState("home");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
@@ -213,43 +230,45 @@ export default function App() {
 
   if (!authChecked) return null;
 
+  const P = "clamp(16px, 4vw, 40px)";
+
   return (
     <>
       <style>{G}</style>
       {showAuthModal && <AuthModal onLogin={handleLogin} onClose={() => setShowAuthModal(false)} />}
 
       {/* NAV */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(10,15,30,0.92)", backdropFilter: "blur(12px)", borderBottom: "1px solid #1a2540", padding: "0 40px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 60 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-            <rect width="28" height="28" rx="8" fill="#ffffff"/>
-            <path d="M8 20 L14 8 L20 20" stroke="#0a0f1e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M10 16 L18 16" stroke="#0a0f1e" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-          <span style={{ fontFamily: "'Instrument Serif', serif", fontSize: 20, color: "#ffffff" }}>TrendCast</span>
-          <span style={{ fontSize: 10, background: "#ffffff", color: "#0a0f1e", padding: "2px 6px", borderRadius: 4, letterSpacing: "0.08em", marginLeft: 4, fontWeight: 600 }}>INDIA</span>
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          
-
-          {user ? (
-            <>
-              <button onClick={() => { setShowWatchlist(!showWatchlist); setActiveNav("home"); }}
-                style={{ padding: "6px 14px", background: showWatchlist ? "#ffffff" : "#111d35", color: showWatchlist ? "#0a0f1e" : "#8aabdd", border: "1px solid #1a2540", borderRadius: 6, fontSize: 12, fontFamily: "'Geist', sans-serif", cursor: "pointer" }}>
-                ★ Watchlist
-              </button>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8, paddingLeft: 12, borderLeft: "1px solid #1a2540" }}>
-                {user.avatar
-                  ? <img src={user.avatar} style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover" }} />
-                  : <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#1a2e50", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>👤</div>
-                }
-                <span style={{ fontSize: 12, color: "#8aabdd" }}>{user.name?.split(" ")[0]}</span>
-                <button onClick={handleLogout} style={{ padding: "4px 10px", background: "transparent", color: "#3a4560", border: "1px solid #1a2540", borderRadius: 6, fontSize: 11, fontFamily: "'Geist', sans-serif", cursor: "pointer" }}>Sign out</button>
-              </div>
-            </>
-          ) : (
-            <button onClick={openAuth} style={{ marginLeft: 8, padding: "7px 18px", background: "#ffffff", color: "#0a0f1e", border: "none", borderRadius: 8, fontSize: 13, fontFamily: "'Geist', sans-serif", fontWeight: 600, cursor: "pointer" }}>Sign In</button>
-          )}
+      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(10,15,30,0.92)", backdropFilter: "blur(12px)", borderBottom: "1px solid #1a2540" }}>
+        <div className="nav-inner" style={{ padding: `0 ${P}`, display: "flex", alignItems: "center", justifyContent: "space-between", height: 60, gap: 8 }}>
+          <div className="nav-logo" style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <rect width="28" height="28" rx="8" fill="#ffffff"/>
+              <path d="M8 20 L14 8 L20 20" stroke="#0a0f1e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M10 16 L18 16" stroke="#0a0f1e" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontFamily: "'Instrument Serif', serif", fontSize: 20, color: "#ffffff" }}>TrendCast</span>
+            <span style={{ fontSize: 10, background: "#ffffff", color: "#0a0f1e", padding: "2px 6px", borderRadius: 4, letterSpacing: "0.08em", fontWeight: 600 }}>INDIA</span>
+          </div>
+          <div className="nav-right" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {user ? (
+              <>
+                <button onClick={() => { setShowWatchlist(!showWatchlist); setActiveNav("home"); }}
+                  style={{ padding: "6px 14px", background: showWatchlist ? "#ffffff" : "#111d35", color: showWatchlist ? "#0a0f1e" : "#8aabdd", border: "1px solid #1a2540", borderRadius: 6, fontSize: 12, fontFamily: "'Geist', sans-serif", cursor: "pointer", whiteSpace: "nowrap" }}>
+                  ★ Watchlist
+                </button>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 8, borderLeft: "1px solid #1a2540" }}>
+                  {user.avatar
+                    ? <img src={user.avatar} style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                    : <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#1a2e50", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0 }}>👤</div>
+                  }
+                  <span className="nav-user-name" style={{ fontSize: 12, color: "#8aabdd" }}>{user.name?.split(" ")[0]}</span>
+                  <button onClick={handleLogout} style={{ padding: "4px 10px", background: "transparent", color: "#3a4560", border: "1px solid #1a2540", borderRadius: 6, fontSize: 11, fontFamily: "'Geist', sans-serif", cursor: "pointer", whiteSpace: "nowrap" }}>Sign out</button>
+                </div>
+              </>
+            ) : (
+              <button onClick={openAuth} style={{ padding: "7px 18px", background: "#ffffff", color: "#0a0f1e", border: "none", borderRadius: 8, fontSize: 13, fontFamily: "'Geist', sans-serif", fontWeight: 600, cursor: "pointer" }}>Sign In</button>
+            )}
+          </div>
         </div>
       </nav>
 
@@ -259,58 +278,59 @@ export default function App() {
       {/* HOME PAGE */}
       {activeNav === "home" && (
         <>
-          {/* WATCHLIST */}
           {showWatchlist && user && (
-            <div style={{ maxWidth: 900, margin: "20px auto", padding: "0 40px" }}>
+            <div style={{ maxWidth: 900, margin: "20px auto", padding: `0 ${P}` }}>
               <Watchlist onPredict={handlePredict} />
             </div>
           )}
 
           {/* HERO */}
-          <div style={{ padding: "80px 40px 60px", maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#111d35", border: "1px solid #243050", borderRadius: 20, padding: "5px 14px", marginBottom: 28, fontSize: 12, color: "#8aabdd" }}>
+          <div className="hero-section" style={{ padding: `60px ${P} 40px`, maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#111d35", border: "1px solid #243050", borderRadius: 20, padding: "5px 14px", marginBottom: 24, fontSize: 12, color: "#8aabdd" }}>
               <span style={{ width: 6, height: 6, background: "#4ade80", borderRadius: "50%", display: "inline-block", boxShadow: "0 0 6px #4ade80" }}/>
               Live data · Updated in real-time
             </div>
-            <h1 style={{ fontFamily: "'Instrument Serif', serif", fontSize: "clamp(40px, 6vw, 72px)", lineHeight: 1.08, letterSpacing: "-0.03em", color: "#ffffff", marginBottom: 20 }}>
+            <h1 style={{ fontFamily: "'Instrument Serif', serif", fontSize: "clamp(32px, 6vw, 72px)", lineHeight: 1.08, letterSpacing: "-0.03em", color: "#ffffff", marginBottom: 16 }}>
               What will India wear<br /><span style={{ fontStyle: "italic", color: "#4a6aaa" }}>3 months from now?</span>
             </h1>
-            <p style={{ fontSize: 16, color: "#8aabdd", lineHeight: 1.6, maxWidth: 480, margin: "0 auto 40px", fontWeight: 300 }}>
+            <p style={{ fontSize: "clamp(14px, 2vw, 16px)", color: "#8aabdd", lineHeight: 1.6, maxWidth: 480, margin: "0 auto 32px", fontWeight: 300 }}>
               AI-powered trend forecasting built on real purchase signals from Amazon, Reddit, YouTube and Google Trends.
             </p>
 
-            <div style={{ display: "flex", gap: 1, justifyContent: "center", marginBottom: 40 }}>
+            {/* STATS */}
+            <div className="stats-row" style={{ display: "flex", gap: 1, justifyContent: "center", marginBottom: 32, flexWrap: "wrap" }}>
               {[{ label: "Data Sources", value: "6" }, { label: "Accuracy Target", value: "85%" }, { label: "Forecast Window", value: "3 mo" }, { label: "Market", value: "India" }].map((s, i) => (
-                <div key={i} style={{ background: "#0d1428", border: "1px solid #1a2540", padding: "12px 24px", borderRadius: i === 0 ? "8px 0 0 8px" : i === 3 ? "0 8px 8px 0" : "0", textAlign: "center", minWidth: 100 }}>
-                  <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 24, color: "#ffffff" }}>{s.value}</div>
+                <div key={i} style={{ background: "#0d1428", border: "1px solid #1a2540", padding: "12px 20px", borderRadius: i === 0 ? "8px 0 0 8px" : i === 3 ? "0 8px 8px 0" : "0", textAlign: "center", minWidth: 80, flex: 1 }}>
+                  <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: "clamp(18px, 3vw, 24px)", color: "#ffffff" }}>{s.value}</div>
                   <div style={{ fontSize: 11, color: "#8aabdd", marginTop: 2 }}>{s.label}</div>
                 </div>
               ))}
             </div>
 
             {!user && (
-              <div style={{ background: "linear-gradient(135deg, #0d1a35, #111d3a)", border: "1px solid #1e3060", borderRadius: 16, padding: "20px 28px", marginBottom: 28, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", textAlign: "left" }}>
+              <div style={{ background: "linear-gradient(135deg, #0d1a35, #111d3a)", border: "1px solid #1e3060", borderRadius: 16, padding: "16px 20px", marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", textAlign: "left" }}>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 500, color: "#ffffff", marginBottom: 4 }}>🔒 Features locked — sign in to unlock</div>
-                  <div style={{ fontSize: 13, color: "#4a6aaa" }}>Search trends, explore categories, download reports & manage watchlists</div>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: "#ffffff", marginBottom: 4 }}>🔒 Features locked — sign in to unlock</div>
+                  <div style={{ fontSize: 12, color: "#4a6aaa" }}>Search trends, explore categories, download reports & manage watchlists</div>
                 </div>
-                <button onClick={openAuth} style={{ padding: "10px 24px", background: "#ffffff", color: "#0a0f1e", border: "none", borderRadius: 10, fontSize: 14, fontFamily: "'Geist', sans-serif", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>Get Started Free →</button>
+                <button onClick={openAuth} style={{ padding: "10px 20px", background: "#ffffff", color: "#0a0f1e", border: "none", borderRadius: 10, fontSize: 13, fontFamily: "'Geist', sans-serif", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>Get Started Free →</button>
               </div>
             )}
 
-            <div style={{ display: "flex", gap: 4, background: "#0d1428", border: "1px solid #1a2540", borderRadius: 12, padding: 4, width: "fit-content", margin: "0 auto 24px" }}>
-  {["search", "category", "style"].map(m => (
-    <button key={m} onClick={() => setHeroMode(m)}
-      style={{ padding: "8px 20px", background: heroMode === m ? "#ffffff" : "none", color: heroMode === m ? "#0a0f1e" : "#8aabdd", border: "none", borderRadius: 8, fontSize: 13, fontFamily: "'Geist', sans-serif", fontWeight: 500, cursor: "pointer", transition: "all 0.2s" }}>
-      {m === "search" ? "Keyword Search" : m === "category" ? "Category Intelligence" : "✨ Personal Style"}
-    </button>
-  ))}
-</div>
+            {/* MODE TOGGLE */}
+            <div className="mode-toggle" style={{ display: "flex", gap: 4, background: "#0d1428", border: "1px solid #1a2540", borderRadius: 12, padding: 4, width: "fit-content", margin: "0 auto 24px" }}>
+              {["search", "category", "style"].map(m => (
+                <button key={m} onClick={() => setHeroMode(m)}
+                  style={{ padding: "8px 16px", background: heroMode === m ? "#ffffff" : "none", color: heroMode === m ? "#0a0f1e" : "#8aabdd", border: "none", borderRadius: 8, fontSize: 12, fontFamily: "'Geist', sans-serif", fontWeight: 500, cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap" }}>
+                  {m === "search" ? "Keyword Search" : m === "category" ? "Category Intelligence" : "✨ Personal Style"}
+                </button>
+              ))}
+            </div>
 
             {heroMode === "search" && (
               <>
                 <LockedFeature isLoggedIn={!!user} onUnlock={openAuth} label="Sign in to explore categories">
-                  <div style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 16, padding: 24, marginBottom: 16, textAlign: "left" }}>
+                  <div style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 16, padding: 20, marginBottom: 16, textAlign: "left" }}>
                     <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8aabdd", marginBottom: 12 }}>Category Explorer</div>
                     <div style={{ display: "flex", gap: 10 }}>
                       <input value={category} onChange={e => setCategory(e.target.value)} onKeyDown={e => e.key === "Enter" && handleExpandCategory()}
@@ -318,8 +338,8 @@ export default function App() {
                         style={{ flex: 1, background: "#0a0f1e", border: "1px solid #243050", borderRadius: 8, padding: "10px 14px", color: "#ffffff", fontSize: 14, outline: "none", fontFamily: "'Geist', sans-serif" }}
                         onFocus={e => (e.target.style.borderColor = "#ffffff")} onBlur={e => (e.target.style.borderColor = "#243050")} />
                       <button onClick={handleExpandCategory} disabled={categoryLoading || !category.trim()}
-                        style={{ padding: "10px 20px", background: categoryLoading ? "#111d35" : "#ffffff", color: categoryLoading ? "#8aabdd" : "#0a0f1e", border: "none", borderRadius: 8, fontSize: 13, fontFamily: "'Geist', sans-serif", fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap" }}>
-                        {categoryLoading ? "Thinking..." : "Explore →"}
+                        style={{ padding: "10px 16px", background: categoryLoading ? "#111d35" : "#ffffff", color: categoryLoading ? "#8aabdd" : "#0a0f1e", border: "none", borderRadius: 8, fontSize: 13, fontFamily: "'Geist', sans-serif", fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap" }}>
+                        {categoryLoading ? "..." : "Explore →"}
                       </button>
                     </div>
                     {categoryItems && (
@@ -328,7 +348,7 @@ export default function App() {
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                           {categoryItems.items?.map((item, i) => (
                             <button key={i} onClick={() => handlePredict([item])}
-                              style={{ background: "#111d35", border: "1px solid #243050", borderRadius: 20, padding: "7px 16px", color: "#ffffff", fontSize: 13, fontFamily: "'Geist', sans-serif", cursor: "pointer" }}
+                              style={{ background: "#111d35", border: "1px solid #243050", borderRadius: 20, padding: "6px 14px", color: "#ffffff", fontSize: 12, fontFamily: "'Geist', sans-serif", cursor: "pointer" }}
                               onMouseEnter={e => { e.currentTarget.style.background = "#ffffff"; e.currentTarget.style.color = "#0a0f1e"; }}
                               onMouseLeave={e => { e.currentTarget.style.background = "#111d35"; e.currentTarget.style.color = "#ffffff"; }}>
                               {item}
@@ -351,13 +371,17 @@ export default function App() {
               </LockedFeature>
             )}
           </div>
-{heroMode === "style" && (
-  <LockedFeature isLoggedIn={!!user} onUnlock={openAuth} label="Sign in to use Personal Style Advisor">
-    <PersonalizedStyling />
-  </LockedFeature>
-)}
+
+          {heroMode === "style" && (
+            <div style={{ maxWidth: 900, margin: "0 auto", padding: `0 ${P} 40px` }}>
+              <LockedFeature isLoggedIn={!!user} onUnlock={openAuth} label="Sign in to use Personal Style Advisor">
+                <PersonalizedStyling />
+              </LockedFeature>
+            </div>
+          )}
+
           {loading && (
-            <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 40px 60px", textAlign: "center" }}>
+            <div style={{ maxWidth: 900, margin: "0 auto", padding: `0 ${P} 60px`, textAlign: "center" }}>
               <div style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 16, padding: 40 }}>
                 <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 20 }}>
                   {[0,1,2].map(i => <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "#ffffff", animation: `pulse 1.2s ease-in-out ${i*0.2}s infinite` }} />)}
@@ -372,36 +396,40 @@ export default function App() {
             </div>
           )}
 
-          {error && <div style={{ maxWidth: 900, margin: "0 auto 40px", padding: "0 40px" }}><div style={{ background: "#1a0a0a", border: "1px solid #3a1515", borderRadius: 10, padding: "14px 18px", color: "#f87171", fontSize: 14 }}>{error}</div></div>}
+          {error && (
+            <div style={{ maxWidth: 900, margin: "0 auto 40px", padding: `0 ${P}` }}>
+              <div style={{ background: "#1a0a0a", border: "1px solid #3a1515", borderRadius: 10, padding: "14px 18px", color: "#f87171", fontSize: 14 }}>{error}</div>
+            </div>
+          )}
 
           {results && (
-            <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 40px 80px" }}>
-              <div style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 20, padding: 32, marginBottom: 32, display: "flex", gap: 32, alignItems: "flex-start", flexWrap: "wrap" }} className="fade-up">
-                <div style={{ flex: 1, minWidth: 280 }}>
+            <div className="results-grid" style={{ maxWidth: 1200, margin: "0 auto", padding: `0 ${P} 80px` }}>
+              <div style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 20, padding: "clamp(16px, 3vw, 32px)", marginBottom: 32, display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }} className="fade-up">
+                <div style={{ flex: 1, minWidth: 200 }}>
                   <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8aabdd", marginBottom: 10 }}>Market Intelligence</div>
-                  <p style={{ fontFamily: "'Instrument Serif', serif", fontSize: 20, color: "#ffffff", lineHeight: 1.5, marginBottom: 10 }}>{results.predictions?.overallInsight}</p>
+                  <p style={{ fontFamily: "'Instrument Serif', serif", fontSize: "clamp(16px, 2vw, 20px)", color: "#ffffff", lineHeight: 1.5, marginBottom: 10 }}>{results.predictions?.overallInsight}</p>
                   {results.predictions?.marketSummary && <p style={{ fontSize: 13, color: "#8aabdd", lineHeight: 1.6 }}>{results.predictions.marketSummary}</p>}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
-                  <div style={{ background: "#0a0f1e", border: "1px solid #1a2540", borderRadius: 12, padding: "16px 24px", textAlign: "center", minWidth: 160 }}>
+                  <div style={{ background: "#0a0f1e", border: "1px solid #1a2540", borderRadius: 12, padding: "14px 20px", textAlign: "center", minWidth: 140 }}>
                     <div style={{ fontSize: 11, color: "#8aabdd", marginBottom: 6 }}>TOP TREND</div>
-                    <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 20, color: "#ffffff" }}>{results.predictions?.topTrend}</div>
+                    <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 18, color: "#ffffff" }}>{results.predictions?.topTrend}</div>
                   </div>
-                  <button onClick={handleDownloadPDF} style={{ padding: "10px 20px", background: "#ffffff", color: "#0a0f1e", border: "none", borderRadius: 8, fontSize: 13, fontFamily: "'Geist', sans-serif", fontWeight: 600, cursor: "pointer" }}>↓ Download PDF Report</button>
+                  <button onClick={handleDownloadPDF} style={{ padding: "10px 18px", background: "#ffffff", color: "#0a0f1e", border: "none", borderRadius: 8, fontSize: 13, fontFamily: "'Geist', sans-serif", fontWeight: 600, cursor: "pointer" }}>↓ Download PDF</button>
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "1px solid #1a2540" }}>
+              <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "1px solid #1a2540", overflowX: "auto" }}>
                 {["predictions", "charts", "history", "sources"].map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)}
-                    style={{ padding: "10px 20px", background: "none", color: activeTab === tab ? "#ffffff" : "#8aabdd", border: "none", borderBottom: activeTab === tab ? "2px solid #ffffff" : "2px solid transparent", fontSize: 13, fontFamily: "'Geist', sans-serif", fontWeight: activeTab === tab ? 500 : 400, cursor: "pointer", textTransform: "capitalize", marginBottom: -1 }}>
+                    style={{ padding: "10px 16px", background: "none", color: activeTab === tab ? "#ffffff" : "#8aabdd", border: "none", borderBottom: activeTab === tab ? "2px solid #ffffff" : "2px solid transparent", fontSize: 13, fontFamily: "'Geist', sans-serif", fontWeight: activeTab === tab ? 500 : 400, cursor: "pointer", textTransform: "capitalize", marginBottom: -1, whiteSpace: "nowrap" }}>
                     {tab}
                   </button>
                 ))}
               </div>
 
               {activeTab === "predictions" && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(360px, 100%), 1fr))", gap: 16 }}>
                   {results.predictions?.predictions?.map((p, i) => (
                     <div key={i} style={{ animation: `fadeUp 0.4s ease ${i*0.1}s both` }}>
                       <TrendCard prediction={p} rawScore={results.rawScores?.find(r => r.keyword === p.keyword)} />
@@ -412,10 +440,10 @@ export default function App() {
               {activeTab === "charts" && <OverallChart predictions={results.predictions?.predictions} rawScores={results.rawScores} />}
               {activeTab === "history" && <TrendHistory rawScores={results.rawScores} predictions={results.predictions?.predictions} />}
               {activeTab === "sources" && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(320px, 100%), 1fr))", gap: 16 }}>
                   {results.rawScores?.map((raw, i) => (
-                    <div key={i} style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 14, padding: 22, animation: `fadeUp 0.4s ease ${i*0.08}s both` }}>
-                      <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 20, color: "#ffffff", marginBottom: 18 }}>{raw.keyword}</div>
+                    <div key={i} style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 14, padding: 20, animation: `fadeUp 0.4s ease ${i*0.08}s both` }}>
+                      <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 18, color: "#ffffff", marginBottom: 16 }}>{raw.keyword}</div>
                       {Object.entries(raw.signals || {}).map(([source, data]) => {
                         const val = data.totalResults ?? data.thisWeekScore ?? data.tweetCount ?? data.totalProducts ?? data.searchVolume ?? 0;
                         const note = data.weeklyNote || '';
@@ -439,7 +467,7 @@ export default function App() {
             </div>
           )}
 
-          <div style={{ borderTop: "1px solid #1a2540", padding: "24px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+          <div className="footer-inner" style={{ borderTop: "1px solid #1a2540", padding: `20px ${P}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
             <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 16, color: "#ffffff" }}>TrendCast India</div>
             <div style={{ fontSize: 12, color: "#8aabdd" }}>Powered by Claude AI · Data updates every 24 hours</div>
           </div>

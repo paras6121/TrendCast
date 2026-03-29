@@ -13,7 +13,7 @@ export async function comparePassword(password, hash) {
 }
 
 export function generateToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '365d' });
 }
 
 export function verifyToken(token) {
