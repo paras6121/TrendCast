@@ -286,6 +286,67 @@ Respond ONLY with a valid JSON object in this exact format, no markdown, no extr
     res.status(500).json({ error: err.message });
   }
 });
+app.post('/api/personalized-styling', requireAuth, async (req, res) => {
+  const { gender, skinTone, height, weight, bodyType, faceShape, event, accessories, imageBase64 } = req.body;
+  try {
+    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    let content = [];
+    if (imageBase64) {
+      content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } });
+    }
+
+    content.push({ type: 'text', text: `You are an expert Indian fashion stylist and color analyst. Analyze this person and give highly personalized styling advice considering upcoming Indian fashion trends for the next 3 months.
+
+Person details:
+- Gender: ${gender || 'Not specified'}
+- Skin tone: ${skinTone || 'Not specified'}
+- Height: ${height || 'Not specified'}
+- Weight/Body: ${weight || 'Not specified'}
+- Body type: ${bodyType || 'Not specified'}
+- Face shape: ${faceShape || 'Not specified'}
+- Occasion: ${event || 'General/Daily'}
+- Accessories owned: ${accessories || 'None specified'}
+${imageBase64 ? '- Photo provided: analyze visible features' : ''}
+
+Respond ONLY with valid JSON, no markdown, no extra text:
+{
+  "summary": "2-3 sentence personalized style summary for this specific person",
+  "colorPalette": [
+    { "name": "color name", "hex": "#hexcode", "reason": "why suits this person specifically", "trending": true/false, "season": "when to wear" }
+  ],
+  "avoidColors": [
+    { "name": "color name", "hex": "#hexcode", "reason": "why to avoid for this body/skin" }
+  ],
+  "outfits": [
+    { "name": "specific outfit name", "description": "detailed description", "colors": ["color1"], "occasion": "when", "buyAt": "Myntra/Amazon/Ajio", "tip": "styling tip", "trending": true/false }
+  ],
+  "futureTrends": [
+    { "trend": "trend name", "relevance": "why relevant for this person", "when": "next 1-3 months", "howToWear": "specific advice" }
+  ],
+  "avoidStyles": [
+    { "style": "style/cut to avoid", "reason": "specific reason for their body type" }
+  ],
+  "bodyTips": "detailed advice on cuts, silhouettes, fits for their specific body type and weight",
+  "faceTips": "neckline and accessory advice for their face shape",
+  "topOutfit": "single best outfit recommendation for their next event"
+}` });
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content }]
+    });
+
+    const raw = message.content[0].text.replace(/```json|```/g, '').trim();
+    const advice = JSON.parse(raw);
+    res.json({ success: true, advice });
+  } catch (err) {
+    console.error('[PersonalizedStyling] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 app.get('/health', (_, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3001;

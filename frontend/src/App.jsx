@@ -6,7 +6,7 @@ import Watchlist from "./components/Watchlist";
 import TrendHistory from "./components/TrendHistory";
 import CategoryIntelligence from "./components/CategoryIntelligence";
 import StyleAdvisor from "./components/StyleAdvisor";
-
+import PersonalizedStyling from "./components/PersonalizedStyling";
 const API = "https://trendcast-backend.onrender.com";
 const G = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&display=swap');
@@ -308,13 +308,13 @@ export default function App() {
             )}
 
             <div style={{ display: "flex", gap: 4, background: "#0d1428", border: "1px solid #1a2540", borderRadius: 12, padding: 4, width: "fit-content", margin: "0 auto 24px" }}>
-              {["search", "category"].map(m => (
-                <button key={m} onClick={() => setHeroMode(m)}
-                  style={{ padding: "8px 24px", background: heroMode === m ? "#ffffff" : "none", color: heroMode === m ? "#0a0f1e" : "#8aabdd", border: "none", borderRadius: 8, fontSize: 13, fontFamily: "'Geist', sans-serif", fontWeight: 500, cursor: "pointer", transition: "all 0.2s" }}>
-                  {m === "search" ? "Keyword Search" : "Category Intelligence"}
-                </button>
-              ))}
-            </div>
+  {["search", "category", "style"].map(m => (
+    <button key={m} onClick={() => setHeroMode(m)}
+      style={{ padding: "8px 20px", background: heroMode === m ? "#ffffff" : "none", color: heroMode === m ? "#0a0f1e" : "#8aabdd", border: "none", borderRadius: 8, fontSize: 13, fontFamily: "'Geist', sans-serif", fontWeight: 500, cursor: "pointer", transition: "all 0.2s" }}>
+      {m === "search" ? "Keyword Search" : m === "category" ? "Category Intelligence" : "✨ Personal Style"}
+    </button>
+  ))}
+</div>
 
             {heroMode === "search" && (
               <>
@@ -360,7 +360,11 @@ export default function App() {
               </LockedFeature>
             )}
           </div>
-
+{heroMode === "style" && (
+  <LockedFeature isLoggedIn={!!user} onUnlock={openAuth} label="Sign in to use Personal Style Advisor">
+    <PersonalizedStyling />
+  </LockedFeature>
+)}
           {loading && (
             <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 40px 60px", textAlign: "center" }}>
               <div style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 16, padding: 40 }}>
