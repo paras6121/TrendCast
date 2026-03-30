@@ -1,5 +1,5 @@
+import OutfitVisualizer from "./OutfitVisualizer";
 import { useState, useRef } from "react";
-
 const API = "https://trendcast-backend.onrender.com";
 
 const SKIN_TONES = [

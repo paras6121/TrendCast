@@ -375,6 +375,34 @@ res.json({ success: true, advice });
     res.status(500).json({ error: err.message });
   }
 });
+app.post('/api/generate-outfit-image', requireAuth, async (req, res) => {
+  const { outfitName, colors, description, occasion, skinTone, bodyType } = req.body;
+  try {
+    const prompt = `Fashion product photography of ${outfitName}, ${description}. Colors: ${colors?.join(', ')}. Styled for ${occasion || 'casual wear'}. Clean white background, professional fashion shoot, high quality, no person, just the clothing item laid flat or on a mannequin. Indian fashion style, ${colors?.[0] || 'neutral'} colored fabric, detailed texture visible.`;
+
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        quality: 'standard',
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.message || 'Image generation failed');
+    res.json({ success: true, imageUrl: data.data[0].url, revisedPrompt: data.data[0].revised_prompt });
+  } catch (err) {
+    console.error('[ImageGen] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 app.get('/health', (_, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3001;
