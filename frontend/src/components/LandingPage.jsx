@@ -1,8 +1,81 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
-export default function LandingPage({ user, onLaunchApp }) {
+const API = "https://trendcast-backend.onrender.com";
 
-  // 🔥 CURSOR GLOW
+/* 🔐 AUTH MODAL */
+function AuthModal({ onClose, onLogin }) {
+  const [mode, setMode] = useState("login");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  async function handleSubmit() {
+    const endpoint = mode === "signup" ? "/api/signup" : "/api/login";
+
+    const res = await fetch(API + endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        mode === "signup"
+          ? { name, email, password }
+          : { email, password }
+      ),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) return alert(data.error);
+
+    localStorage.setItem("tc_token", data.token);
+    localStorage.setItem("tc_user", JSON.stringify(data.user));
+
+    onLogin(data.user, data.token);
+    onClose();
+  }
+
+  return (
+    <div style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.8)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 1000
+    }}>
+      <div style={{
+        background: "#0a0a0a",
+        padding: 30,
+        borderRadius: 16,
+        width: 320
+      }}>
+        <h2>{mode === "login" ? "Login" : "Sign Up"}</h2>
+
+        {mode === "signup" && (
+          <input placeholder="Name" onChange={e => setName(e.target.value)} />
+        )}
+
+        <input placeholder="Email" onChange={e => setEmail(e.target.value)} />
+        <input type="password" placeholder="Password" onChange={e => setPassword(e.target.value)} />
+
+        <button onClick={handleSubmit}>
+          {mode === "login" ? "Login" : "Sign Up"}
+        </button>
+
+        <p onClick={() => setMode(mode === "login" ? "signup" : "login")}>
+          Switch to {mode === "login" ? "Signup" : "Login"}
+        </p>
+
+        <button onClick={onClose}>Close</button>
+      </div>
+    </div>
+  );
+}
+
+/* 🔥 MAIN PAGE */
+export default function LandingPage({ user, onLogin, onLaunchApp }) {
+  const [showAuth, setShowAuth] = useState(false);
+
   useEffect(() => {
     const glow = document.querySelector(".cursor-glow");
     window.addEventListener("mousemove", (e) => {
@@ -13,137 +86,41 @@ export default function LandingPage({ user, onLaunchApp }) {
     });
   }, []);
 
+  function handleStart() {
+    if (user) {
+      onLaunchApp();
+    } else {
+      setShowAuth(true); // 🔥 FORCE LOGIN
+    }
+  }
+
   const G = `
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+  body { background:#050505; color:white; font-family:sans-serif; }
 
-  :root {
-    --bg:#050505;
-    --accent:#7c3aed;
-    --accent2:#06b6d4;
-    --gradient: linear-gradient(135deg,#7c3aed,#06b6d4);
-    --border: rgba(255,255,255,0.08);
-  }
-
-  *{margin:0;padding:0;box-sizing:border-box}
-
-  body{
-    font-family:'Inter',sans-serif;
-    background:#050505;
+  .btn {
+    padding:14px 30px;
+    border-radius:12px;
+    border:none;
+    background:linear-gradient(135deg,#7c3aed,#06b6d4);
     color:white;
-    overflow-x:hidden;
+    cursor:pointer;
   }
 
-  /* 🌌 BACKGROUND */
-  body::before{
-    content:"";
-    position:fixed;
-    inset:0;
-    background:
-      radial-gradient(circle at 20% 20%, rgba(124,58,237,0.25), transparent 40%),
-      radial-gradient(circle at 80% 0%, rgba(6,182,212,0.2), transparent 40%);
-    animation:bgMove 10s infinite alternate;
-    z-index:-1;
-  }
-
-  @keyframes bgMove{
-    0%{transform:translateY(0)}
-    100%{transform:translateY(-40px)}
-  }
-
-  /* ✨ CURSOR */
-  .cursor-glow{
-    position:fixed;
-    width:300px;height:300px;
-    background:radial-gradient(circle,rgba(124,58,237,0.25),transparent 60%);
-    pointer-events:none;
-    transform:translate(-50%,-50%);
-    z-index:999;
-  }
-
-  /* NAV */
-  .nav{
+  .nav {
     position:fixed;
     width:100%;
-    top:0;
-    padding:20px 40px;
     display:flex;
     justify-content:space-between;
-    background: rgba(10,10,10,0.7);
-    border-bottom:1px solid var(--border);
+    padding:20px;
   }
 
-  /* HERO */
-  .hero{
-    min-height:100vh;
+  .hero {
+    height:100vh;
     display:flex;
     flex-direction:column;
     justify-content:center;
     align-items:center;
     text-align:center;
-    padding-top:80px;
-    animation:fadeUp 1s ease;
-  }
-
-  h1{
-    font-family:'Playfair Display', serif;
-    font-size:clamp(42px,6vw,90px);
-    line-height:1.1;
-    letter-spacing:-0.02em;
-  }
-
-  p{
-    color:rgba(255,255,255,0.6);
-    margin-top:20px;
-    font-size:18px;
-    max-width:600px;
-  }
-
-  @keyframes fadeUp{
-    from{opacity:0;transform:translateY(40px)}
-    to{opacity:1;transform:translateY(0)}
-  }
-
-  /* BUTTON */
-  .btn{
-    margin-top:30px;
-    padding:16px 36px;
-    border:none;
-    border-radius:14px;
-    background:var(--gradient);
-    color:white;
-    font-weight:600;
-    font-size:16px;
-    cursor:pointer;
-    transition:.3s;
-  }
-
-  .btn:hover{
-    transform:scale(1.05);
-    filter:brightness(1.2);
-  }
-
-  /* ABOUT */
-  .about{
-    padding:120px 20px;
-    max-width:900px;
-    margin:auto;
-    text-align:center;
-    animation:fadeUp 1s ease;
-  }
-
-  .about h2{
-    font-family:'Playfair Display', serif;
-    font-size:48px;
-    letter-spacing:-0.02em;
-    margin-bottom:20px;
-  }
-
-  .about p{
-    font-size:16px;
-    color:rgba(255,255,255,0.65);
-    line-height:1.9;
-    margin-top:18px;
-    font-weight:300;
   }
   `;
 
@@ -151,55 +128,32 @@ export default function LandingPage({ user, onLaunchApp }) {
     <>
       <style>{G}</style>
 
-      {/* CURSOR */}
-      <div className="cursor-glow"></div>
+      {showAuth && (
+        <AuthModal
+          onClose={() => setShowAuth(false)}
+          onLogin={onLogin}
+        />
+      )}
 
-      {/* NAV */}
       <div className="nav">
-        <div style={{ fontWeight: 600 }}>TrendCast</div>
-        <button className="btn" onClick={onLaunchApp}>
+        <div>TrendCast</div>
+        <button className="btn" onClick={handleStart}>
           {user ? "Dashboard" : "Get Started"}
         </button>
       </div>
 
-      {/* HERO */}
       <div className="hero">
-        <h1>
-          Predict Fashion <br /> Before It Trends
-        </h1>
+        <h1>Predict Fashion Before It Trends</h1>
+        <p>AI-powered fashion forecasting for India</p>
 
-        <p>
-          AI-powered fashion forecasting for India. Stay ahead of trends, not behind them.
-        </p>
-
-        <button className="btn" onClick={onLaunchApp}>
+        <button className="btn" onClick={handleStart}>
           Start Forecasting →
         </button>
       </div>
 
-      {/* ABOUT */}
-      <div className="about">
+      <div style={{ padding: 80, textAlign: "center" }}>
         <h2>About TrendCast</h2>
-
-        <p>
-          TrendCast is an AI-powered fashion intelligence platform built for India's next generation of creators, brands, and entrepreneurs.
-        </p>
-
-        <p>
-          Our system predicts upcoming fashion trends using real-time data from Amazon, Google Trends, YouTube, and social media — helping you stay ahead of what people will wear next.
-        </p>
-
-        <p>
-          We also provide <b>personalized fashion recommendations</b> based on your weight, height, face shape, and style — so you don’t just follow trends, you wear what suits you best.
-        </p>
-
-        <p>
-          With <b>Category Intelligence</b>, you can explore deep insights into colors, fabrics, fits, and pricing trends across India — enabling smarter design, buying, and marketing decisions.
-        </p>
-
-        <p>
-          No more guessing. Just data-driven fashion decisions.
-        </p>
+        <p>Predict trends, personalize fashion, and explore category intelligence.</p>
       </div>
     </>
   );
