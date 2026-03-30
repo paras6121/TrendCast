@@ -3,6 +3,23 @@ import { useState, useEffect } from "react";
 export default function LandingPage({ onLogin, user, onLaunchApp }) {
   const [showAuth, setShowAuth] = useState(false);
 
+  // 🔥 KEYWORDS STATE
+  const [keywords, setKeywords] = useState(["", "", "", "", ""]);
+
+  function handleChange(i, value) {
+    const updated = [...keywords];
+    updated[i] = value;
+    setKeywords(updated);
+  }
+
+  function handleForecast() {
+    if (!keywords.some(k => k.trim())) {
+      alert("Enter at least one keyword");
+      return;
+    }
+    onLaunchApp();
+  }
+
   // 🔥 CURSOR GLOW
   useEffect(() => {
     const glow = document.querySelector(".cursor-glow");
@@ -34,7 +51,7 @@ export default function LandingPage({ onLogin, user, onLaunchApp }) {
     overflow-x:hidden;
   }
 
-  /* 🌌 BACKGROUND */
+  /* BACKGROUND */
   body::before{
     content:"";
     position:fixed;
@@ -51,7 +68,6 @@ export default function LandingPage({ onLogin, user, onLaunchApp }) {
     100%{transform:translateY(-40px)}
   }
 
-  /* ✨ CURSOR */
   .cursor-glow{
     position:fixed;
     width:300px;height:300px;
@@ -61,7 +77,6 @@ export default function LandingPage({ onLogin, user, onLaunchApp }) {
     z-index:999;
   }
 
-  /* NAV */
   .nav{
     position:fixed;
     width:100%;
@@ -69,28 +84,27 @@ export default function LandingPage({ onLogin, user, onLaunchApp }) {
     padding:20px 40px;
     display:flex;
     justify-content:space-between;
-    backdrop-filter:blur(16px);
-    background:rgba(0,0,0,0.4);
+    background: rgba(10,10,10,0.7);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
   }
 
-  /* HERO */
   .hero{
-    height:100vh;
+    min-height:100vh;
     display:flex;
     flex-direction:column;
     justify-content:center;
     align-items:center;
     text-align:center;
     animation:fadeUp 1s ease;
+    padding-top:80px;
   }
 
   h1{
     font-size:clamp(40px,6vw,80px);
-    line-height:1.1;
   }
 
   p{
-    color:rgba(255,255,255,0.5);
+    color:rgba(255,255,255,0.6);
     margin-top:20px;
   }
 
@@ -99,7 +113,6 @@ export default function LandingPage({ onLogin, user, onLaunchApp }) {
     to{opacity:1;transform:translateY(0)}
   }
 
-  /* BUTTON */
   .btn{
     margin-top:30px;
     padding:14px 30px;
@@ -114,12 +127,10 @@ export default function LandingPage({ onLogin, user, onLaunchApp }) {
 
   .btn:hover{
     transform:scale(1.05);
-    filter:brightness(1.2);
   }
 
-  /* INPUT SECTION */
   .card{
-    margin-top:60px;
+    margin-top:40px;
     padding:25px;
     border-radius:16px;
     background:rgba(255,255,255,0.05);
@@ -149,6 +160,19 @@ export default function LandingPage({ onLogin, user, onLaunchApp }) {
     box-shadow:0 0 0 2px rgba(124,58,237,0.3);
   }
 
+  .about{
+    padding:100px 20px;
+    max-width:900px;
+    margin:auto;
+    text-align:center;
+    animation:fadeUp 1s ease;
+  }
+
+  .about p{
+    line-height:1.9;
+    margin-top:20px;
+  }
+
   @media(max-width:600px){
     .grid{grid-template-columns:1fr}
   }
@@ -158,7 +182,6 @@ export default function LandingPage({ onLogin, user, onLaunchApp }) {
     <>
       <style>{G}</style>
 
-      {/* CURSOR */}
       <div className="cursor-glow"></div>
 
       {/* NAV */}
@@ -174,10 +197,8 @@ export default function LandingPage({ onLogin, user, onLaunchApp }) {
 
       {/* HERO */}
       <div className="hero">
-        <h1>
-          Predict Fashion <br /> Before It Trends
-        </h1>
-        <p>AI-powered trend forecasting for India</p>
+        <h1>Predict Fashion Before It Trends</h1>
+        <p>AI-powered fashion forecasting for India</p>
 
         <button
           className="btn"
@@ -186,20 +207,52 @@ export default function LandingPage({ onLogin, user, onLaunchApp }) {
           Start Forecasting →
         </button>
 
-        {/* 🔥 INPUT CARD */}
+        {/* 🔥 WORKING INPUT */}
         <div className="card">
           <div className="grid">
-            <input placeholder="cargo pants" />
-            <input placeholder="linen shirt" />
-            <input placeholder="co-ord set" />
-            <input placeholder="baggy jeans" />
-            <input placeholder="maxi dress" />
+            {keywords.map((k, i) => (
+              <input
+                key={i}
+                value={k}
+                onChange={(e) => handleChange(i, e.target.value)}
+                placeholder="Enter keyword..."
+              />
+            ))}
           </div>
 
-          <button className="btn" style={{ width: "100%" }}>
+          <button
+            className="btn"
+            onClick={handleForecast}
+            style={{ width: "100%" }}
+          >
             Forecast Trends →
           </button>
         </div>
+      </div>
+
+      {/* ABOUT */}
+      <div className="about">
+        <h2 style={{ fontSize: "40px" }}>About TrendCast</h2>
+
+        <p>
+          TrendCast is an AI-powered fashion intelligence platform designed for India's next generation of brands, designers, and entrepreneurs.
+        </p>
+
+        <p>
+          Our system predicts upcoming fashion trends by analyzing real-time data from platforms like Amazon, Google Trends, YouTube, and social media — helping you stay ahead of what people will wear next.
+        </p>
+
+        <p>
+          We also provide <b>personalized fashion recommendations</b> based on your weight, height, face shape, and style — so you don’t just follow trends, you wear what actually suits you.
+        </p>
+
+        <p>
+          With our <b>Category Intelligence</b>, you can explore deep insights into colors, fabrics, fits, and pricing trends across India — enabling smarter design, buying, and marketing decisions.
+        </p>
+
+        <p>
+          No more guessing. Just data-driven fashion decisions.
+        </p>
       </div>
     </>
   );
