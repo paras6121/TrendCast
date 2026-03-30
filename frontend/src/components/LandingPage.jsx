@@ -14,7 +14,7 @@ export default function LandingPage({ user, onLaunchApp }) {
   }, []);
 
   const G = `
-  @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
   :root {
     --bg:#050505;
@@ -27,7 +27,7 @@ export default function LandingPage({ user, onLaunchApp }) {
   *{margin:0;padding:0;box-sizing:border-box}
 
   body{
-    font-family:'Geist',sans-serif;
+    font-family:'Inter',sans-serif;
     background:#050505;
     color:white;
     overflow-x:hidden;
@@ -85,14 +85,17 @@ export default function LandingPage({ user, onLaunchApp }) {
   }
 
   h1{
-    font-size:clamp(40px,6vw,90px);
+    font-family:'Playfair Display', serif;
+    font-size:clamp(42px,6vw,90px);
     line-height:1.1;
+    letter-spacing:-0.02em;
   }
 
   p{
     color:rgba(255,255,255,0.6);
     margin-top:20px;
     font-size:18px;
+    max-width:600px;
   }
 
   @keyframes fadeUp{
@@ -129,14 +132,18 @@ export default function LandingPage({ user, onLaunchApp }) {
   }
 
   .about h2{
-    font-size:42px;
+    font-family:'Playfair Display', serif;
+    font-size:48px;
+    letter-spacing:-0.02em;
     margin-bottom:20px;
   }
 
   .about p{
-    line-height:1.9;
-    margin-top:16px;
     font-size:16px;
+    color:rgba(255,255,255,0.65);
+    line-height:1.9;
+    margin-top:18px;
+    font-weight:300;
   }
   `;
 
@@ -149,7 +156,7 @@ export default function LandingPage({ user, onLaunchApp }) {
 
       {/* NAV */}
       <div className="nav">
-        <div>TrendCast</div>
+        <div style={{ fontWeight: 600 }}>TrendCast</div>
         <button className="btn" onClick={onLaunchApp}>
           {user ? "Dashboard" : "Get Started"}
         </button>
@@ -161,7 +168,9 @@ export default function LandingPage({ user, onLaunchApp }) {
           Predict Fashion <br /> Before It Trends
         </h1>
 
-        <p>AI-powered fashion forecasting for India</p>
+        <p>
+          AI-powered fashion forecasting for India. Stay ahead of trends, not behind them.
+        </p>
 
         <button className="btn" onClick={onLaunchApp}>
           Start Forecasting →
@@ -173,15 +182,15 @@ export default function LandingPage({ user, onLaunchApp }) {
         <h2>About TrendCast</h2>
 
         <p>
-          TrendCast is an AI-powered fashion intelligence platform designed for India's next generation of brands, designers, and entrepreneurs.
+          TrendCast is an AI-powered fashion intelligence platform built for India's next generation of creators, brands, and entrepreneurs.
         </p>
 
         <p>
-          We predict upcoming fashion trends using real-time data from Amazon, Google Trends, YouTube, and social media — helping you stay ahead of what people will wear next.
+          Our system predicts upcoming fashion trends using real-time data from Amazon, Google Trends, YouTube, and social media — helping you stay ahead of what people will wear next.
         </p>
 
         <p>
-          Our system also delivers <b>personalized fashion recommendations</b> based on your weight, height, face shape, and style — so you don’t just follow trends, you wear what suits you best.
+          We also provide <b>personalized fashion recommendations</b> based on your weight, height, face shape, and style — so you don’t just follow trends, you wear what suits you best.
         </p>
 
         <p>
