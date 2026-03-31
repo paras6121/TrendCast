@@ -23,7 +23,7 @@ import { addToWatchlist, getWatchlist, removeFromWatchlist, updateWatchlistScore
 const app = express();
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-
+const { gender, skinTone, height, weight, bodyType, faceShape, event, accessories, imageBase64, budget } = req.body;
 app.use(cors({ 
   origin: FRONTEND_URL, 
   credentials: true,
@@ -252,7 +252,7 @@ ${faceShape ? `- Face shape: ${faceShape}` : ''}
 ${event ? `- Occasion/Event: ${event}` : ''}
 ${accessories ? `- Accessories they have: ${accessories}` : ''}
 ${imageBase64 ? '- A photo has been provided, analyze their features from it.' : ''}
-
+${budget ? `- Budget: ${budget} (suggest outfits within this range)` : ''}
 Respond ONLY with a valid JSON object in this exact format, no markdown, no extra text:
 {
   "colorPalette": [
@@ -287,7 +287,7 @@ Respond ONLY with a valid JSON object in this exact format, no markdown, no extr
   }
 });
 app.post('/api/personalized-styling', requireAuth, async (req, res) => {
-  const { gender, skinTone, height, weight, bodyType, faceShape, event, accessories, imageBase64 } = req.body;
+  const { gender, skinTone, height, weight, bodyType, faceShape, event, accessories, imageBase64, budget } = req.body;
   try {
     const Anthropic = (await import('@anthropic-ai/sdk')).default;
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

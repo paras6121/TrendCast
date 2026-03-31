@@ -1,7 +1,7 @@
 import OutfitVisualizer from "./OutfitVisualizer";
 import { useState, useRef } from "react";
 const API = "https://trendcast-backend.onrender.com";
-
+  
 const SKIN_TONES = [
   { name: "Fair", hex: "#FDDBB4" },
   { name: "Light", hex: "#F5C5A3" },
@@ -29,6 +29,7 @@ export default function PersonalizedStyling() {
   const [faceShape, setFaceShape] = useState("");
   const [event, setEvent] = useState("");
   const [accessories, setAccessories] = useState("");
+  const [budget, setBudget] = useState("");
   const [image, setImage] = useState(null);
   const [imageBase64, setImageBase64] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -55,7 +56,7 @@ export default function PersonalizedStyling() {
       const res = await fetch(`${API}/api/personalized-styling`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ gender, skinTone, height, weight, bodyType, faceShape, event, accessories, imageBase64 }),
+        body: JSON.stringify({ gender, skinTone, height, weight, bodyType, faceShape, event, accessories, imageBase64, budget }),
       });
       if (!res.ok) throw new Error("Server error: " + res.status);
       const data = await res.json();
@@ -190,7 +191,30 @@ export default function PersonalizedStyling() {
           </div>
 
           {error && <div style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 8, padding: "10px 14px", color: "#f87171", fontSize: 13 }}>{error}</div>}
+<div style={{ background: "#0d1428", border: "1px solid #1a2540", borderRadius: 16, padding: 20 }}>
+  <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: "#8aabdd", marginBottom: 12 }}>
+    Budget (Optional)
+  </div>
 
+  <input
+    value={budget}
+    onChange={e => setBudget(e.target.value)}
+    placeholder="e.g. ₹500-2000, under ₹5000..."
+    style={{
+      width: "100%",
+      background: "#0a0f1e",
+      border: "1px solid #1a2540",
+      borderRadius: 8,
+      padding: "10px 12px",
+      color: "#ffffff",
+      fontSize: 13,
+      outline: "none",
+      fontFamily: "'Geist', sans-serif"
+    }}
+    onFocus={e => e.target.style.borderColor = "#ffffff"}
+    onBlur={e => e.target.style.borderColor = "#1a2540"}
+  />
+</div>
           <button onClick={handleAnalyze} disabled={loading}
             style={{ padding: "16px", background: loading ? "#111d35" : "#ffffff", color: loading ? "#8aabdd" : "#0a0f1e", border: "none", borderRadius: 12, fontSize: 15, fontFamily: "'Geist', sans-serif", fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", transition: "all 0.2s" }}>
             {loading ? "✨ Analyzing your style + upcoming trends..." : "✨ Get My Personalized Style Advice →"}
@@ -263,27 +287,63 @@ export default function PersonalizedStyling() {
           )}
 
           {/* OUTFITS TAB */}
-          {activeTab === "outfits" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              {result.outfits?.map((o, i) => (
-                <div key={i} style={{ background: "#0d1428", border: `1px solid ${o.trending ? "#4ade8044" : "#1a2540"}`, borderRadius: 14, padding: 18 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                    <div style={{ fontSize: 14, color: "#ffffff", fontWeight: 600 }}>{o.name}</div>
-                    <div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 8 }}>
-                      {o.trending && <span style={{ fontSize: 10, background: "rgba(74,222,128,0.15)", border: "1px solid rgba(74,222,128,0.3)", color: "#4ade80", borderRadius: 4, padding: "2px 6px" }}>TRENDING</span>}
-                      <span style={{ fontSize: 10, background: "#111d35", border: "1px solid #1a2540", color: "#8aabdd", borderRadius: 4, padding: "2px 6px" }}>{o.occasion}</span>
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 12, color: "#4a5a7a", lineHeight: 1.5, marginBottom: 10 }}>{o.description}</div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-                    {o.colors?.map((c, j) => <span key={j} style={{ fontSize: 11, background: "#1a2540", borderRadius: 4, padding: "2px 8px", color: "#8aabdd" }}>{c}</span>)}
-                  </div>
-                  {o.tip && <div style={{ fontSize: 11, color: "#4ade80", borderLeft: "2px solid #4ade80", paddingLeft: 8, marginBottom: 8 }}>💡 {o.tip}</div>}
-                  <div style={{ fontSize: 11, color: "#4a6aaa" }}>🛍 Buy at: {o.buyAt}</div>
-                </div>
+         {activeTab === "outfits" && (
+  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px,100%), 1fr))", gap: 16 }}>
+    {result.outfits?.map((o, i) => {
+      const prompt = encodeURIComponent(
+        `${o.name} Indian fashion outfit, ${gender} model, ${o.colors?.join(", ")} colors, clean white background, professional fashion photography, full body shot, mannequin or model wearing the outfit`
+      );
+      const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?width=400&height=500&nologo=true`;
+      return (
+        <div key={i} style={{ background: "#0d1428", border: `1px solid ${o.trending ? "rgba(74,222,128,0.2)" : "#1a2540"}`, borderRadius: 16, overflow: "hidden" }}>
+          {/* Outfit Image */}
+          <div style={{ width: "100%", height: 220, background: "#080d1c", position: "relative", overflow: "hidden" }}>
+            <img
+              src={imageUrl}
+              alt={o.name}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }}
+            />
+            <div style={{ display: "none", position: "absolute", inset: 0, alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, color: "rgba(255,255,255,0.2)", fontSize: 12 }}>
+              <div style={{ fontSize: 32 }}>👔</div>
+              <div>{o.name}</div>
+            </div>
+            {o.trending && (
+              <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(74,222,128,0.9)", color: "#000", borderRadius: 6, padding: "3px 8px", fontSize: 10, fontWeight: 700 }}>TRENDING</div>
+            )}
+          </div>
+          {/* Outfit Info */}
+          <div style={{ padding: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+              <div style={{ fontSize: 14, color: "#ffffff", fontWeight: 600 }}>{o.name}</div>
+              <div style={{ fontSize: 10, background: "#111d35", border: "1px solid #1a2540", color: "#8aabdd", borderRadius: 4, padding: "2px 7px", whiteSpace: "nowrap", marginLeft: 8, flexShrink: 0 }}>{o.occasion}</div>
+            </div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.5, marginBottom: 10 }}>{o.description}</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+              {o.colors?.map((c, j) => <span key={j} style={{ fontSize: 10, background: "#1a2540", borderRadius: 4, padding: "2px 8px", color: "#8aabdd" }}>{c}</span>)}
+            </div>
+            {o.tip && <div style={{ fontSize: 11, color: "#4ade80", borderLeft: "2px solid #4ade80", paddingLeft: 8, marginBottom: 10 }}>💡 {o.tip}</div>}
+            {/* Buy Links */}
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {[
+                { name: "Myntra", url: `https://www.myntra.com/${encodeURIComponent(o.name)}`, color: "#ff3f6c" },
+                { name: "Amazon", url: `https://www.amazon.in/s?k=${encodeURIComponent(o.name + " " + (budget || ""))}`, color: "#ff9900" },
+                { name: "Ajio", url: `https://www.ajio.com/search/?text=${encodeURIComponent(o.name)}`, color: "#e91e63" },
+              ].map((shop, j) => (
+                <a key={j} href={shop.url} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: 11, padding: "5px 10px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, color: "rgba(255,255,255,0.6)", textDecoration: "none", transition: "all 0.2s" }}
+                  onMouseEnter={e => { e.currentTarget.style.background = shop.color; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = shop.color; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}>
+                  🛍 {shop.name}
+                </a>
               ))}
             </div>
-          )}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+)}
 
           {/* TRENDS TAB */}
           {activeTab === "trends" && (
