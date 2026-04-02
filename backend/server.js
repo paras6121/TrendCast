@@ -16,20 +16,20 @@ import { scrapeGoogleShopping } from './scrapers/googleshopping_new.js';
 import { scrapeTwitter } from './scrapers/twitter.js';
 import { simulateMyntra } from './scrapers/simulated.js';
 import { aggregateData } from './aggregator.js';
-import { predictTrends, expandCategory, analyzeCategoryIntelligence } from './claude.js';
+import { predictTrends, expandCategory, analyzeCategoryIntelligence, extractOfflineKeywords, MENSWEAR_OFFLINE_DATA } from './claude.js';
 import { generateTrendReport } from './PdfGenerator.js';
 import { addToWatchlist, getWatchlist, removeFromWatchlist, updateWatchlistScore } from './watchlist.js';
+import { getSignalsForKeywords } from './offlineSignals.js';
 
 const app = express();
-
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-const { gender, skinTone, height, weight, bodyType, faceShape, event, accessories, imageBase64, budget } = req.body;
-app.use(cors({ 
-  origin: FRONTEND_URL, 
+
+app.use(cors({
+  origin: FRONTEND_URL,
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'session_secret_change_me',
   resave: false,
@@ -38,7 +38,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// ── GOOGLE OAUTH STRATEGY ─────────────────────────────────────────────────────
+// ── GOOGLE OAUTH ──────────────────────────────────────────────────────────────
 
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
@@ -58,6 +58,7 @@ passport.use(new GoogleStrategy({
   }
 }));
 
+passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser(async (id, done) => {
   try {
     const user = findUserById(id);
@@ -67,7 +68,7 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
-// ── GOOGLE AUTH ROUTES ────────────────────────────────────────────────────────
+// ── AUTH ROUTES ───────────────────────────────────────────────────────────────
 
 app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
@@ -77,11 +78,9 @@ app.get('/auth/google/callback',
   passport.authenticate('google', { session: false, failureRedirect: `${FRONTEND_URL}?error=google_failed` }),
   (req, res) => {
     const token = generateToken({ id: req.user.id, email: req.user.email, name: req.user.name, avatar: req.user.avatar });
-    // Redirect to frontend with token in URL — frontend grabs it and stores in localStorage
-res.redirect(`${FRONTEND_URL}?token=${token}&name=${encodeURIComponent(req.user.name)}&email=${encodeURIComponent(req.user.email)}&avatar=${encodeURIComponent(req.user.avatar || '')}`);  }
+    res.redirect(`${FRONTEND_URL}?token=${token}&name=${encodeURIComponent(req.user.name)}&email=${encodeURIComponent(req.user.email)}&avatar=${encodeURIComponent(req.user.avatar || '')}`);
+  }
 );
-
-// ── EMAIL AUTH ROUTES ─────────────────────────────────────────────────────────
 
 app.post('/api/signup', async (req, res) => {
   const { name, email, password } = req.body;
@@ -120,31 +119,90 @@ app.get('/api/me', requireAuth, (req, res) => {
   res.json({ success: true, user: req.user });
 });
 
-// ── PROTECTED ROUTES ──────────────────────────────────────────────────────────
+// ── HELPERS ───────────────────────────────────────────────────────────────────
 
 function withTimeout(promise, ms, fallback) {
   return Promise.race([promise, new Promise(resolve => setTimeout(() => resolve(fallback), ms))]);
 }
 
+function isMenswearKeyword(keyword) {
+  return /men|shirt|trouser|check|stripe|yarn|polyester|kurta|blazer|jacket/i.test(keyword);
+}
+
+async function buildOfflineData(keywords) {
+  const hasMenswear = keywords.some(k => isMenswearKeyword(k));
+  const dbOfflineData = await getSignalsForKeywords(keywords);
+  return {
+    ...(hasMenswear ? { menswear: MENSWEAR_OFFLINE_DATA } : {}),
+    ...dbOfflineData,
+  };
+}
+
+// ── CATEGORY INTELLIGENCE ─────────────────────────────────────────────────────
+
 app.post('/api/category-intelligence', requireAuth, async (req, res) => {
   const { category } = req.body;
   if (!category) return res.status(400).json({ error: 'Provide a category' });
   try {
-    const keywords = [category, category + ' trending', category + ' style', category + ' color', category + ' fit'];
-    const kws = keywords.slice(0, 3);
-    const emptyAmazon = kws.map(k => ({ source: 'amazon', keyword: k, totalResults: 0, topItems: [] }));
-    const emptyReddit = kws.map(k => ({ source: 'reddit', keyword: k, totalPosts: 0, topTerms: [] }));
-    const [amazonData, redditData] = await Promise.all([
-      withTimeout(scrapeAmazon(kws), 20000, emptyAmazon),
-      withTimeout(scrapeReddit(kws), 15000, emptyReddit),
+    console.log('[CategoryIntel] Starting for: ' + category);
+
+    const offlineData = await buildOfflineData([
+      category,
+      category + ' fabric',
+      category + ' pattern',
+      category + ' style',
     ]);
-    const intelligence = await analyzeCategoryIntelligence(category, { amazonData, redditData, category });
-    res.json({ success: true, intelligence });
+
+    const hasOfflineData = Object.keys(offlineData).length > 0;
+    let offlineExtraction = null;
+    let scrapeKeywords = [];
+
+    if (hasOfflineData) {
+      console.log('[CategoryIntel] Offline data found — extracting targeted keywords...');
+      offlineExtraction = await extractOfflineKeywords(category, offlineData);
+      scrapeKeywords = offlineExtraction?.extractedKeywords || [];
+      console.log('[CategoryIntel] Extracted:', scrapeKeywords.join(', '));
+    }
+
+    if (scrapeKeywords.length === 0) {
+      scrapeKeywords = [category, category + ' trending india', category + ' style 2025'];
+    }
+
+    const kws = scrapeKeywords.slice(0, 4);
+    console.log('[CategoryIntel] Scraping with:', kws.join(', '));
+
+    const emptyAmazon  = kws.map(k => ({ source: 'amazon', keyword: k, totalResults: 0, topItems: [] }));
+    const emptyReddit  = kws.map(k => ({ source: 'reddit', keyword: k, totalPosts: 0, topTerms: [] }));
+    const emptyYoutube = kws.map(k => ({ source: 'youtube', keyword: k, videoCount: 0, topTerms: [] }));
+
+    const [amazonData, redditData, youtubeData] = await Promise.all([
+      withTimeout(scrapeAmazon(kws),   20000, emptyAmazon),
+      withTimeout(scrapeReddit(kws),   15000, emptyReddit),
+      withTimeout(scrapeYoutube(kws),  15000, emptyYoutube),
+    ]);
+
+    const intelligence = await analyzeCategoryIntelligence(
+      category,
+      { amazonData, redditData, youtubeData, category },
+      offlineData,
+      offlineExtraction
+    );
+
+    res.json({
+      success: true,
+      intelligence,
+      offlineSignalsUsed: hasOfflineData,
+      extractedKeywords: kws,
+      offlineExtraction,
+    });
+
   } catch (err) {
     console.error('[CategoryIntelligence] Error:', err);
     res.status(500).json({ error: err.message });
   }
 });
+
+// ── EXPAND CATEGORY ───────────────────────────────────────────────────────────
 
 app.post('/api/expand-category', requireAuth, async (req, res) => {
   const { category } = req.body;
@@ -158,39 +216,63 @@ app.post('/api/expand-category', requireAuth, async (req, res) => {
   }
 });
 
+// ── PREDICT ───────────────────────────────────────────────────────────────────
+
 app.post('/api/predict', requireAuth, async (req, res) => {
   const { keywords } = req.body;
   if (!keywords || !Array.isArray(keywords) || keywords.length === 0)
     return res.status(400).json({ error: 'Provide an array of keywords' });
   const kws = keywords.slice(0, 5);
   try {
+    console.log('[Server] Starting scrape for: ' + kws.join(', '));
+
     const emptyGoogle   = kws.map(k => ({ source: 'google_trends', keyword: k, thisWeekScore: 0, lastWeekScore: 0, weeklyChange: 0, trend: 'UNKNOWN' }));
     const emptyAmazon   = kws.map(k => ({ source: 'amazon', keyword: k, totalResults: 0, newArrivalsThisWeek: 0, bestsellerCount: 0, topItems: [], demandSignal: 'LOW' }));
     const emptyYoutube  = kws.map(k => ({ source: 'youtube', keyword: k, videoCount: 0, avgViews: 0, trendSignal: 'EMERGING', topTerms: [] }));
     const emptyReddit   = kws.map(k => ({ source: 'reddit', keyword: k, totalPosts: 0, thisWeekPosts: 0, avgScore: 0, engagementSignal: 'LOW' }));
     const emptyShopping = kws.map(k => ({ source: 'google_shopping', keyword: k, totalProducts: 0, avgPrice: 0, demandSignal: 'LOW', topProducts: [] }));
     const emptyTwitter  = kws.map(k => ({ source: 'twitter', keyword: k, tweetCount: 0, avgEngagement: 0, viralSignal: 'EMERGING', topTerms: [] }));
+
     const [googleData, amazonData, youtubeData, redditData, googleShoppingData, twitterData] = await Promise.all([
-      withTimeout(scrapeGoogleTrends(kws), 30000, emptyGoogle),
-      withTimeout(scrapeAmazon(kws),       20000, emptyAmazon),
-      withTimeout(scrapeYoutube(kws),      15000, emptyYoutube),
-      withTimeout(scrapeReddit(kws),       15000, emptyReddit),
-      withTimeout(scrapeGoogleShopping(kws), 20000, emptyShopping),
-      withTimeout(scrapeTwitter(kws),      15000, emptyTwitter),
+      withTimeout(scrapeGoogleTrends(kws),     30000, emptyGoogle),
+      withTimeout(scrapeAmazon(kws),           20000, emptyAmazon),
+      withTimeout(scrapeYoutube(kws),          15000, emptyYoutube),
+      withTimeout(scrapeReddit(kws),           15000, emptyReddit),
+      withTimeout(scrapeGoogleShopping(kws),   20000, emptyShopping),
+      withTimeout(scrapeTwitter(kws),          15000, emptyTwitter),
     ]);
+
     const myntraData = simulateMyntra(kws);
-    const aggregated = aggregateData({ googleData, amazonData, youtubeData, redditData, myntraData, googleShoppingData, twitterData, keywords: kws });
-    const predictions = await predictTrends(aggregated);
+
+    console.log('[Server] Scraping complete. Aggregating...');
+    const aggregated = aggregateData({
+      googleData, amazonData, youtubeData, redditData,
+      myntraData, googleShoppingData, twitterData,
+      keywords: kws,
+    });
+
+    // ── OFFLINE DATA INJECTION ──────────────────────────────────────────────
+    const offlineData = await buildOfflineData(kws);
+    if (Object.keys(offlineData).length > 0) {
+      console.log('[Server] Offline data injected for keywords:', Object.keys(offlineData).join(', '));
+    }
+
+    console.log('[Server] Calling Claude for predictions...');
+    const predictions = await predictTrends(aggregated, offlineData);
+
     for (const kw of kws) {
       const raw = aggregated.find(r => r.keyword === kw);
       if (raw) await updateWatchlistScore(kw, raw.compositeScore, raw.signals?.googleTrends?.trend || 'STABLE');
     }
+
     res.json({ success: true, keywords: kws, predictions, rawScores: aggregated });
   } catch (err) {
     console.error('[Server] Error:', err);
     res.status(500).json({ error: err.message });
   }
 });
+
+// ── PDF REPORT ────────────────────────────────────────────────────────────────
 
 app.post('/api/download-report', requireAuth, async (req, res) => {
   const { predictions, rawScores, keywords } = req.body;
@@ -204,6 +286,8 @@ app.post('/api/download-report', requireAuth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ── WATCHLIST ─────────────────────────────────────────────────────────────────
 
 app.post('/api/watchlist/add', requireAuth, async (req, res) => {
   const { keyword, email } = req.body;
@@ -227,22 +311,21 @@ app.delete('/api/watchlist/:id', requireAuth, async (req, res) => {
     res.json({ success: true, ...result });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
+// ── STYLE ADVISOR ─────────────────────────────────────────────────────────────
+
 app.post('/api/style-advisor', requireAuth, async (req, res) => {
-  const { skinTone, height, weight, faceShape, event, accessories, imageBase64 } = req.body;
+  const { skinTone, height, weight, faceShape, event, accessories, imageBase64, budget } = req.body;
   try {
     const Anthropic = (await import('@anthropic-ai/sdk')).default;
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     let content = [];
-
     if (imageBase64) {
-      content.push({
-        type: 'image',
-        source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 }
-      });
+      content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } });
     }
 
-    const prompt = `You are a professional fashion stylist and color analyst specializing in Indian fashion and skin tones.
+    content.push({ type: 'text', text: `You are a professional fashion stylist and color analyst specializing in Indian fashion and skin tones.
 
 Analyze the following person's details and provide personalized styling advice:
 ${skinTone ? `- Skin tone: ${skinTone}` : ''}
@@ -251,9 +334,10 @@ ${weight ? `- Body type/weight: ${weight}` : ''}
 ${faceShape ? `- Face shape: ${faceShape}` : ''}
 ${event ? `- Occasion/Event: ${event}` : ''}
 ${accessories ? `- Accessories they have: ${accessories}` : ''}
+${budget ? `- Budget: ${budget}` : ''}
 ${imageBase64 ? '- A photo has been provided, analyze their features from it.' : ''}
-${budget ? `- Budget: ${budget} (suggest outfits within this range)` : ''}
-Respond ONLY with a valid JSON object in this exact format, no markdown, no extra text:
+
+Respond ONLY with a valid JSON object, no markdown, no extra text:
 {
   "colorPalette": [
     { "name": "color name", "hex": "#hexcode", "reason": "why this color suits them", "season": "when to wear" }
@@ -268,13 +352,11 @@ Respond ONLY with a valid JSON object in this exact format, no markdown, no extr
   "bodyAdvice": "advice about cuts and silhouettes for their body type",
   "overallStyle": "their overall style personality in 2-3 sentences",
   "topPick": "the single best outfit recommendation for their next event"
-}`;
-
-    content.push({ type: 'text', text: prompt });
+}` });
 
     const message = await client.messages.create({
-      model: 'claude-opus-4-5',
-      max_tokens: 8000,
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
       messages: [{ role: 'user', content }]
     });
 
@@ -286,6 +368,9 @@ Respond ONLY with a valid JSON object in this exact format, no markdown, no extr
     res.status(500).json({ error: err.message });
   }
 });
+
+// ── PERSONALIZED STYLING ──────────────────────────────────────────────────────
+
 app.post('/api/personalized-styling', requireAuth, async (req, res) => {
   const { gender, skinTone, height, weight, bodyType, faceShape, event, accessories, imageBase64, budget } = req.body;
   try {
@@ -308,77 +393,74 @@ Person details:
 - Face shape: ${faceShape || 'Not specified'}
 - Occasion: ${event || 'General/Daily'}
 - Accessories owned: ${accessories || 'None specified'}
+- Budget: ${budget || 'Not specified'}
 ${imageBase64 ? '- Photo provided: analyze visible features' : ''}
 
 Respond ONLY with valid JSON, no markdown, no extra text:
 {
-  "summary": "2-3 sentence personalized style summary for this specific person",
+  "summary": "2-3 sentence personalized style summary",
   "colorPalette": [
-    { "name": "color name", "hex": "#hexcode", "reason": "why suits this person specifically", "trending": true/false, "season": "when to wear" }
+    { "name": "color name", "hex": "#hexcode", "reason": "why suits this person", "trending": true, "season": "when to wear" }
   ],
   "avoidColors": [
-    { "name": "color name", "hex": "#hexcode", "reason": "why to avoid for this body/skin" }
+    { "name": "color name", "hex": "#hexcode", "reason": "why to avoid" }
   ],
   "outfits": [
-    { "name": "specific outfit name", "description": "detailed description", "colors": ["color1"], "occasion": "when", "buyAt": "Myntra/Amazon/Ajio", "tip": "styling tip", "trending": true/false }
+    { "name": "outfit name", "description": "detailed description", "colors": ["color1"], "occasion": "when", "buyAt": "Myntra/Amazon/Ajio", "tip": "styling tip", "trending": true }
   ],
   "futureTrends": [
-    { "trend": "trend name", "relevance": "why relevant for this person", "when": "next 1-3 months", "howToWear": "specific advice" }
+    { "trend": "trend name", "relevance": "why relevant", "when": "next 1-3 months", "howToWear": "specific advice" }
   ],
   "avoidStyles": [
-    { "style": "style/cut to avoid", "reason": "specific reason for their body type" }
+    { "style": "style to avoid", "reason": "reason for their body type" }
   ],
-  "bodyTips": "detailed advice on cuts, silhouettes, fits for their specific body type and weight",
-  "faceTips": "neckline and accessory advice for their face shape",
-  "topOutfit": "single best outfit recommendation for their next event"
+  "bodyTips": "detailed advice on cuts and silhouettes",
+  "faceTips": "neckline and accessory advice",
+  "topOutfit": "single best outfit recommendation"
 }` });
 
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 8000,
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
       messages: [{ role: 'user', content }]
     });
 
-  const raw = message.content[0].text.replace(/```json|```/g, '').trim();
-
-// Try to fix truncated JSON by completing it
-let advice;
-try {
-  advice = JSON.parse(raw);
-} catch {
-  // JSON was cut off — try to salvage it
-  let fixed = raw;
-  // Count unclosed braces and brackets
-  let braces = 0, brackets = 0;
-  for (const ch of fixed) {
-    if (ch === '{') braces++;
-    else if (ch === '}') braces--;
-    else if (ch === '[') brackets++;
-    else if (ch === ']') brackets--;
-  }
-  // Remove trailing incomplete entry
-  const lastComplete = fixed.lastIndexOf('},');
-  if (lastComplete > 0) fixed = fixed.substring(0, lastComplete + 1);
-  // Close all open brackets and braces
-  while (brackets > 0) { fixed += ']'; brackets--; }
-  while (braces > 0) { fixed += '}'; braces--; }
-  try {
-    advice = JSON.parse(fixed);
-  } catch {
-    // Last resort — ask Claude for shorter response
-    return res.status(500).json({ error: 'Response too long. Please try with fewer details filled in.' });
-  }
-}
-res.json({ success: true, advice });
+    const raw = message.content[0].text.replace(/```json|```/g, '').trim();
+    let advice;
+    try {
+      advice = JSON.parse(raw);
+    } catch {
+      let fixed = raw;
+      let braces = 0, brackets = 0;
+      for (const ch of fixed) {
+        if (ch === '{') braces++;
+        else if (ch === '}') braces--;
+        else if (ch === '[') brackets++;
+        else if (ch === ']') brackets--;
+      }
+      const lastComplete = fixed.lastIndexOf('},');
+      if (lastComplete > 0) fixed = fixed.substring(0, lastComplete + 1);
+      while (brackets > 0) { fixed += ']'; brackets--; }
+      while (braces > 0) { fixed += '}'; braces--; }
+      try {
+        advice = JSON.parse(fixed);
+      } catch {
+        return res.status(500).json({ error: 'Response too long. Please try with fewer details.' });
+      }
+    }
+    res.json({ success: true, advice });
   } catch (err) {
     console.error('[PersonalizedStyling] Error:', err);
     res.status(500).json({ error: err.message });
   }
 });
+
+// ── OUTFIT IMAGE GENERATION ───────────────────────────────────────────────────
+
 app.post('/api/generate-outfit-image', requireAuth, async (req, res) => {
-  const { outfitName, colors, description, occasion, skinTone, bodyType } = req.body;
+  const { outfitName, colors, description, occasion } = req.body;
   try {
-    const prompt = `Fashion product photography of ${outfitName}, ${description}. Colors: ${colors?.join(', ')}. Styled for ${occasion || 'casual wear'}. Clean white background, professional fashion shoot, high quality, no person, just the clothing item laid flat or on a mannequin. Indian fashion style, ${colors?.[0] || 'neutral'} colored fabric, detailed texture visible.`;
+    const prompt = `Fashion product photography of ${outfitName}, ${description}. Colors: ${colors?.join(', ')}. Styled for ${occasion || 'casual wear'}. Clean white background, professional fashion shoot, high quality, no person, clothing item laid flat or on mannequin. Indian fashion style, detailed texture visible.`;
 
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
@@ -397,12 +479,15 @@ app.post('/api/generate-outfit-image', requireAuth, async (req, res) => {
 
     const data = await response.json();
     if (!response.ok) throw new Error(data.error?.message || 'Image generation failed');
-    res.json({ success: true, imageUrl: data.data[0].url, revisedPrompt: data.data[0].revised_prompt });
+    res.json({ success: true, imageUrl: data.data[0].url });
   } catch (err) {
     console.error('[ImageGen] Error:', err);
     res.status(500).json({ error: err.message });
   }
 });
+
+// ── HEALTH ────────────────────────────────────────────────────────────────────
+
 app.get('/health', (_, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3001;

@@ -86,7 +86,29 @@ export default function CategoryIntelligence() {
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {data.peakingNow.map((item, i) => (
                   <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ background: MOMENTUM_COLOR[item.momentum] + '18', border: "1px solid " + MOMENTUM_COLOR[item.momentum] + '35', borderRadius: 6, padding: "3px 8px", fontSize: 10, color: MOMENTUM_COLOR[item.momentum], fontWeight: 600, whiteSpace: "nowrap" }}>{item.momentum}</div>
+```jsx
+<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+  <div style={{ background: MOMENTUM_COLOR[item.momentum] + '18', border: "1px solid " + MOMENTUM_COLOR[item.momentum] + '35', borderRadius: 6, padding: "3px 8px", fontSize: 10, color: MOMENTUM_COLOR[item.momentum], fontWeight: 600, whiteSpace: "nowrap" }}>
+    {item.momentum}
+  </div>
+
+  <div style={{
+    fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 4,
+    background: item.classification === 'STRONG' ? '#0a1a0a' : item.classification === 'EMERGING' ? '#1a1a0a' : '#0f0f0f',
+    color: item.classification === 'STRONG' ? '#4ade80' : item.classification === 'EMERGING' ? '#fbbf24' : '#888888',
+    border: `1px solid ${item.classification === 'STRONG' ? '#1a3a1a' : item.classification === 'EMERGING' ? '#3a3010' : '#1e1e1e'}`,
+  }}>
+    {item.classification}
+  </div>
+
+  {item.offlineBacked && (
+    <div style={{ fontSize: 10, color: "#4ade80", background: "#0a1a0a", border: "1px solid #1a3a1a", borderRadius: 4, padding: "2px 8px" }}>
+      🧵 Supplier
+    </div>
+  )}
+</div>
+
+
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, color: "#ffffff", fontWeight: 500, marginBottom: 2 }}>{item.item}</div>
                       <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>{item.reason}</div>
@@ -205,6 +227,19 @@ export default function CategoryIntelligence() {
           )}
         </div>
       )}
+      {data.dataQuality === "ONLINE_ONLY" && (
+  <div style={{ background: "#111111", border: "1px solid #1e1e1e", borderRadius: 12, padding: 16, display: "flex", gap: 12, alignItems: "flex-start" }}>
+    <span style={{ fontSize: 20 }}>📡</span>
+    <div>
+      <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", color: "#555555", fontWeight: 600, marginBottom: 4 }}>
+        Online Data Only
+      </div>
+      <div style={{ fontSize: 13, color: "#444444", lineHeight: 1.6 }}>
+        {data.offlineSummary}
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
