@@ -227,7 +227,7 @@ export default function CategoryIntelligence() {
           )}
         </div>
       )}
-      {data.dataQuality === "ONLINE_ONLY" && (
+      {data?.dataQuality === "ONLINE_ONLY" && (
   <div style={{ background: "#111111", border: "1px solid #1e1e1e", borderRadius: 12, padding: 16, display: "flex", gap: 12, alignItems: "flex-start" }}>
     <span style={{ fontSize: 20 }}>📡</span>
     <div>
@@ -235,7 +235,7 @@ export default function CategoryIntelligence() {
         Online Data Only
       </div>
       <div style={{ fontSize: 13, color: "#444444", lineHeight: 1.6 }}>
-        {data.offlineSummary}
+        {data?.offlineSummary}
       </div>
     </div>
   </div>
