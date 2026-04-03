@@ -258,8 +258,7 @@ app.post('/api/predict', requireAuth, async (req, res) => {
     }
 
     console.log('[Server] Calling Claude for predictions...');
-    const predictions = await predictTrends(aggregated, offlineData);
-
+const predictions = await predictTrends(aggregated, {});
     for (const kw of kws) {
       const raw = aggregated.find(r => r.keyword === kw);
       if (raw) await updateWatchlistScore(kw, raw.compositeScore, raw.signals?.googleTrends?.trend || 'STABLE');

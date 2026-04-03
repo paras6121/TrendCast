@@ -2,8 +2,6 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// ── CORE ANALYST INSTRUCTION ─────────────────────────────────────────────────
-// This is the foundation of every Claude call in TrendCast
 const ANALYST_SYSTEM_PROMPT = `You are a senior fashion trend analyst specializing in the Indian market.
 
 Your methodology:
@@ -22,8 +20,6 @@ Classification rules:
 
 Always lead your analysis with what the supply chain is saying before referencing online data.`;
 
-// ── MENSWEAR OFFLINE DATA ────────────────────────────────────────────────────
-// Pre-loaded from fabric manufacturing contact
 export const MENSWEAR_OFFLINE_DATA = {
   source: "Fabric Manufacturing Contact — Direct Industry Intel",
   sourceType: "fabric_supplier",
@@ -74,7 +70,6 @@ export const MENSWEAR_OFFLINE_DATA = {
   ],
 };
 
-// ── EXTRACT KEYWORDS FROM OFFLINE DATA ──────────────────────────────────────
 export async function extractOfflineKeywords(category, offlineSignals) {
   const offlineContext = JSON.stringify(offlineSignals, null, 2);
 
@@ -86,13 +81,6 @@ Here are offline supply chain signals from fabric suppliers and manufacturers:
 ${offlineContext}
 
 Extract the most specific, searchable keywords from this offline data to scrape Amazon, Reddit and YouTube.
-
-For example if offline data mentions "yarn dyed checks in muted tones" extract:
-- "yarn dyed check shirt men"
-- "checks shirt india"
-- "micro check pattern shirt"
-
-Extract 5-8 highly specific search keywords that will find the most relevant online validation data.
 
 Respond ONLY in this JSON format, no other text:
 {
@@ -114,12 +102,11 @@ Respond ONLY in this JSON format, no other text:
   return JSON.parse(jsonMatch[0]);
 }
 
-// ── EXPAND CATEGORY ───────────────────────────────────────────────────────────
 export async function expandCategory(category) {
   const lowerCat = category.toLowerCase();
-  const isMenswear = lowerCat.includes('men') || lowerCat.includes('shirt') ||
-    lowerCat.includes('trouser') || lowerCat.includes('kurta') ||
-    lowerCat.includes('check') || lowerCat.includes('stripe');
+  const isMenswear =
+    (lowerCat.includes('check') || lowerCat.includes('stripe') || lowerCat.includes('yarn dyed')) &&
+    (lowerCat.includes('shirt') || lowerCat.includes('men'));
 
   let offlineContext = '';
   if (isMenswear) {
@@ -149,12 +136,10 @@ Respond ONLY in this exact JSON format, no other text:
   return JSON.parse(jsonMatch[0]);
 }
 
-// ── CATEGORY INTELLIGENCE ─────────────────────────────────────────────────────
 export async function analyzeCategoryIntelligence(category, scrapedData, offlineSignals = {}, offlineExtraction = null) {
   const context = JSON.stringify(scrapedData, null, 2);
   const offlineContext = JSON.stringify(offlineSignals, null, 2);
   const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-
   const hasOffline = Object.keys(offlineSignals).length > 0;
 
   const prompt = `${ANALYST_SYSTEM_PROMPT}
@@ -166,24 +151,16 @@ ${offlineContext}
 
 Offline extraction summary: ${offlineExtraction ? JSON.stringify(offlineExtraction) : 'Not available'}
 
-` : 'No offline supply chain data available for this category. Base analysis on online data only.\n\n'}ONLINE DEMAND DATA (Tier 2 — validation layer, scraped using offline-derived keywords):
+` : 'No offline supply chain data available for this category. Base analysis on online data only.\n\n'}ONLINE DEMAND DATA (Tier 2 — validation layer):
 ${context}
-
-Generate report following the methodology: offline signals define direction, online data validates timing and size.
 
 Respond ONLY in this JSON format:
 {
   "category": "${category}",
-  "summary": "2-3 sentences — lead with what supply chain is saying, then what online data confirms",
+  "summary": "2-3 sentences",
   "dataQuality": "${hasOffline ? 'OFFLINE_VALIDATED' : 'ONLINE_ONLY'}",
   "peakingNow": [
-    {
-      "item": "specific item name",
-      "classification": "STRONG|EMERGING|STABLE",
-      "momentum": "EXPLOSIVE|HIGH|MEDIUM|LOW",
-      "offlineBacked": true,
-      "reason": "supplier says X, online data confirms/shows Y"
-    }
+    { "item": "specific item name", "classification": "STRONG|EMERGING|STABLE", "momentum": "EXPLOSIVE|HIGH|MEDIUM|LOW", "offlineBacked": true, "reason": "brief reason" }
   ],
   "fits": [
     { "name": "fit name", "trendScore": 85, "direction": "RISING|STABLE|DECLINING", "offlineBacked": true, "note": "brief note" }
@@ -200,7 +177,7 @@ Respond ONLY in this JSON format:
   "targetAudience": "who is driving this",
   "seasonalNote": "seasonal context",
   "topRetailerAction": "single most important action right now",
-  "offlineSummary": "${hasOffline ? 'summary of what supply chain is telling us' : 'No supply chain data — add offline signals for better accuracy'}"
+  "offlineSummary": "${hasOffline ? 'summary of supply chain signals' : 'No supply chain data available'}"
 }`;
 
   const response = await client.messages.create({
@@ -215,46 +192,46 @@ Respond ONLY in this JSON format:
   return JSON.parse(jsonMatch[0]);
 }
 
-// ── PREDICT TRENDS ────────────────────────────────────────────────────────────
 export async function predictTrends(aggregatedData, offlineSignals = {}) {
+  // Only inject offline data if keywords actually match offline signals
+  const keywords = aggregatedData.map(d => d.keyword?.toLowerCase() || '');
+  const offlineKeywords = ['check', 'stripe', 'yarn dyed', 'polyester cotton'];
+  const hasMatch = keywords.some(k => offlineKeywords.some(ok => k.includes(ok)));
+  if (!hasMatch) offlineSignals = {};
+
   const context = JSON.stringify(aggregatedData, null, 2);
   const offlineContext = JSON.stringify(offlineSignals, null, 2);
   const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
   const peakMonth = new Date();
   peakMonth.setMonth(peakMonth.getMonth() + 3);
   const peakMonthStr = peakMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
-
   const hasOffline = Object.keys(offlineSignals).length > 0;
 
   const prompt = `${ANALYST_SYSTEM_PROMPT}
 
 Today is ${currentMonth}. Predict what will trend in India around ${peakMonthStr}.
 
-${hasOffline ? `TIER 1 — OFFLINE SUPPLY CHAIN (50% weight — defines prediction direction):
+IMPORTANT: Only predict trends for the exact keywords provided. Do NOT add unrelated trends.
+
+${hasOffline ? `TIER 1 — OFFLINE SUPPLY CHAIN (50% weight):
 ${offlineContext}
 
-` : 'No offline supply chain signals available. Using online data only — confidence will be moderate.\n\n'}TIER 2 — ONLINE DEMAND DATA (40% weight — validates timing and size):
+` : 'No offline supply chain signals available. Using online data only.\n\n'}TIER 2 — ONLINE DEMAND DATA (40% weight):
 ${context}
-
-For each keyword:
-1. Check if offline supply chain data exists → if yes, lead with it
-2. Check if online data supports or contradicts the offline signal
-3. Classify as STRONG, EMERGING, STABLE or DECLINING
-4. Give higher confidence when both tiers align
 
 Respond in this exact JSON format:
 {
   "predictions": [
     {
-      "keyword": "...",
-      "prediction": "Lead with supply chain signal if available, then online validation",
+      "keyword": "exact keyword from input",
+      "prediction": "prediction based only on this keyword's data",
       "confidence": "HIGH|MEDIUM|LOW",
       "classification": "STRONG|EMERGING|STABLE|DECLINING",
-      "offlineValidated": true,
-      "supplyChainNote": "what supplier data says, or No supply-side data available",
-      "onlineValidation": "what online data confirms or contradicts",
+      "offlineValidated": false,
+      "supplyChainNote": "No supply-side data available",
+      "onlineValidation": "what online data shows for this keyword",
       "weeklyMomentum": "e.g. +32% week on week",
-      "drivers": ["...", "...", "..."],
+      "drivers": ["driver1", "driver2", "driver3"],
       "peakMonth": "${peakMonthStr}",
       "sustainedUntil": "e.g. December 2025",
       "sustainabilityScore": 75,
@@ -276,17 +253,17 @@ Respond in this exact JSON format:
         { "range": "₹2000-₹5000", "demand": "HIGH|MEDIUM|LOW" },
         { "range": "Above ₹5000", "demand": "HIGH|MEDIUM|LOW" }
       ],
-      "retailerAction": "...",
-      "targetAudience": "...",
-      "priceRange": "...",
+      "retailerAction": "specific action for this keyword only",
+      "targetAudience": "who buys this specific item",
+      "priceRange": "typical price range",
       "compositeScore": 0,
       "timeframeNote": "Based on ${currentMonth}, predicting for ${peakMonthStr}"
     }
   ],
-  "overallInsight": "...",
-  "topTrend": "...",
-  "marketSummary": "...",
-  "offlineDataSummary": "${hasOffline ? 'what supply chain signals are collectively telling us' : 'No supply chain data used — add offline signals for stronger predictions'}"
+  "overallInsight": "insight based only on the searched keywords",
+  "topTrend": "best performing keyword from the list",
+  "marketSummary": "summary of searched keywords only",
+  "offlineDataSummary": "${hasOffline ? 'supply chain signals used' : 'No supply chain data used'}"
 }`;
 
   const response = await client.messages.create({
