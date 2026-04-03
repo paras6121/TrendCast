@@ -291,7 +291,7 @@ Respond in this exact JSON format:
 
   const response = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 3500,
+    max_tokens: 8000,
     messages: [{ role: 'user', content: prompt }],
   });
 
