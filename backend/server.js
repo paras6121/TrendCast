@@ -176,9 +176,9 @@ app.post('/api/category-intelligence', requireAuth, async (req, res) => {
     const emptyYoutube = kws.map(k => ({ source: 'youtube', keyword: k, videoCount: 0, topTerms: [] }));
 
     const [amazonData, redditData, youtubeData] = await Promise.all([
-      withTimeout(scrapeAmazon(kws),   20000, emptyAmazon),
-      withTimeout(scrapeReddit(kws),   15000, emptyReddit),
-      withTimeout(scrapeYoutube(kws),  15000, emptyYoutube),
+      withTimeout(scrapeAmazon(kws),  20000, emptyAmazon),
+      withTimeout(scrapeReddit(kws),  15000, emptyReddit),
+      withTimeout(scrapeYoutube(kws), 15000, emptyYoutube),
     ]);
 
     const intelligence = await analyzeCategoryIntelligence(
@@ -234,12 +234,12 @@ app.post('/api/predict', requireAuth, async (req, res) => {
     const emptyTwitter  = kws.map(k => ({ source: 'twitter', keyword: k, tweetCount: 0, avgEngagement: 0, viralSignal: 'EMERGING', topTerms: [] }));
 
     const [googleData, amazonData, youtubeData, redditData, googleShoppingData, twitterData] = await Promise.all([
-      withTimeout(scrapeGoogleTrends(kws),     30000, emptyGoogle),
-      withTimeout(scrapeAmazon(kws),           20000, emptyAmazon),
-      withTimeout(scrapeYoutube(kws),          15000, emptyYoutube),
-      withTimeout(scrapeReddit(kws),           15000, emptyReddit),
-      withTimeout(scrapeGoogleShopping(kws),   20000, emptyShopping),
-      withTimeout(scrapeTwitter(kws),          15000, emptyTwitter),
+      withTimeout(scrapeGoogleTrends(kws),   30000, emptyGoogle),
+      withTimeout(scrapeAmazon(kws),         20000, emptyAmazon),
+      withTimeout(scrapeYoutube(kws),        15000, emptyYoutube),
+      withTimeout(scrapeReddit(kws),         15000, emptyReddit),
+      withTimeout(scrapeGoogleShopping(kws), 20000, emptyShopping),
+      withTimeout(scrapeTwitter(kws),        15000, emptyTwitter),
     ]);
 
     const myntraData = simulateMyntra(kws);
@@ -251,14 +251,17 @@ app.post('/api/predict', requireAuth, async (req, res) => {
       keywords: kws,
     });
 
-    // ── OFFLINE DATA INJECTION ──────────────────────────────────────────────
+    // Build offline data and inject into predictions
     const offlineData = await buildOfflineData(kws);
     if (Object.keys(offlineData).length > 0) {
-      console.log('[Server] Offline data injected for keywords:', Object.keys(offlineData).join(', '));
+      console.log('[Server] Offline data injected for:', Object.keys(offlineData).join(', '));
+    } else {
+      console.log('[Server] No offline data for these keywords — using online only');
     }
 
     console.log('[Server] Calling Claude for predictions...');
-const predictions = await predictTrends(aggregated, {});
+    const predictions = await predictTrends(aggregated, offlineData);
+
     for (const kw of kws) {
       const raw = aggregated.find(r => r.keyword === kw);
       if (raw) await updateWatchlistScore(kw, raw.compositeScore, raw.signals?.googleTrends?.trend || 'STABLE');
@@ -324,9 +327,9 @@ app.post('/api/style-advisor', requireAuth, async (req, res) => {
       content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } });
     }
 
-    content.push({ type: 'text', text: `You are a professional fashion stylist and color analyst specializing in Indian fashion and skin tones.
+    content.push({ type: 'text', text: `You are a professional fashion stylist specializing in Indian fashion and skin tones.
 
-Analyze the following person's details and provide personalized styling advice:
+Analyze the following person and provide personalized styling advice:
 ${skinTone ? `- Skin tone: ${skinTone}` : ''}
 ${height ? `- Height: ${height}` : ''}
 ${weight ? `- Body type/weight: ${weight}` : ''}
@@ -355,7 +358,7 @@ Respond ONLY with a valid JSON object, no markdown, no extra text:
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 8000,
+      max_tokens: 4000,
       messages: [{ role: 'user', content }]
     });
 
@@ -376,12 +379,37 @@ app.post('/api/personalized-styling', requireAuth, async (req, res) => {
     const Anthropic = (await import('@anthropic-ai/sdk')).default;
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+    const genderLower = (gender || '').toLowerCase();
+    const isMale = genderLower.includes('male') || genderLower.includes('man') || genderLower.includes('boy');
+    const isFemale = genderLower.includes('female') || genderLower.includes('woman') || genderLower.includes('girl');
+
+    const genderRule = isMale
+      ? `STRICT RULE: This person is MALE. Only suggest men's clothing ONLY:
+         - Shirts (formal, casual, check, stripe, linen, denim)
+         - Trousers, chinos, cargo pants, jeans
+         - Kurtas (men's), sherwanis, bandhgalas
+         - Jackets, blazers, waistcoats
+         - Shorts, joggers, activewear for men
+         - NEVER suggest: dresses, sarees, lehengas, skirts, blouses, women's kurtas, feminine cuts
+         - buyAt must say "Men's" e.g. "Myntra Men", "Amazon Men's Fashion", "Ajio Men"`
+      : isFemale
+      ? `STRICT RULE: This person is FEMALE. Only suggest women's clothing ONLY:
+         - Dresses, co-ord sets, tops, blouses
+         - Women's kurtas, salwar suits, lehengas, sarees
+         - Skirts, palazzos, wide leg trousers for women
+         - Women's jackets, cardigans, blazers
+         - NEVER suggest: men's shirts, men's trousers, masculine cuts
+         - buyAt must say "Women's" e.g. "Myntra Women", "Amazon Women's Fashion", "Ajio Women"`
+      : `Suggest gender-neutral or unisex clothing appropriate for Indian fashion.`;
+
     let content = [];
     if (imageBase64) {
       content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } });
     }
 
     content.push({ type: 'text', text: `You are an expert Indian fashion stylist and color analyst. Analyze this person and give highly personalized styling advice considering upcoming Indian fashion trends for the next 3 months.
+
+${genderRule}
 
 Person details:
 - Gender: ${gender || 'Not specified'}
@@ -397,30 +425,30 @@ ${imageBase64 ? '- Photo provided: analyze visible features' : ''}
 
 Respond ONLY with valid JSON, no markdown, no extra text:
 {
-  "summary": "2-3 sentence personalized style summary",
+  "summary": "2-3 sentence personalized style summary mentioning gender and upcoming trends",
   "colorPalette": [
     { "name": "color name", "hex": "#hexcode", "reason": "why suits this person", "trending": true, "season": "when to wear" }
   ],
   "avoidColors": [
-    { "name": "color name", "hex": "#hexcode", "reason": "why to avoid" }
+    { "name": "color name", "hex": "#hexcode", "reason": "why to avoid for this skin tone" }
   ],
   "outfits": [
-    { "name": "outfit name", "description": "detailed description", "colors": ["color1"], "occasion": "when", "buyAt": "Myntra/Amazon/Ajio", "tip": "styling tip", "trending": true }
+    { "name": "gender-appropriate outfit name", "description": "detailed description of exactly what to wear", "colors": ["color1"], "occasion": "when to wear", "buyAt": "Myntra Men/Women or Amazon Men/Women Fashion", "tip": "styling tip", "trending": true }
   ],
   "futureTrends": [
-    { "trend": "trend name", "relevance": "why relevant", "when": "next 1-3 months", "howToWear": "specific advice" }
+    { "trend": "gender-appropriate upcoming trend", "relevance": "why relevant for this person", "when": "next 1-3 months", "howToWear": "specific advice for their body type" }
   ],
   "avoidStyles": [
-    { "style": "style to avoid", "reason": "reason for their body type" }
+    { "style": "style or cut to avoid", "reason": "specific reason for their body type and gender" }
   ],
-  "bodyTips": "detailed advice on cuts and silhouettes",
-  "faceTips": "neckline and accessory advice",
-  "topOutfit": "single best outfit recommendation"
+  "bodyTips": "detailed advice on cuts, fits and silhouettes for this gender and body type",
+  "faceTips": "neckline and accessory advice for their face shape",
+  "topOutfit": "single best gender-appropriate outfit for their next event"
 }` });
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 8000,
+      max_tokens: 4000,
       messages: [{ role: 'user', content }]
     });
 
@@ -457,9 +485,15 @@ Respond ONLY with valid JSON, no markdown, no extra text:
 // ── OUTFIT IMAGE GENERATION ───────────────────────────────────────────────────
 
 app.post('/api/generate-outfit-image', requireAuth, async (req, res) => {
-  const { outfitName, colors, description, occasion } = req.body;
+  const { outfitName, colors, description, occasion, gender } = req.body;
   try {
-    const prompt = `Fashion product photography of ${outfitName}, ${description}. Colors: ${colors?.join(', ')}. Styled for ${occasion || 'casual wear'}. Clean white background, professional fashion shoot, high quality, no person, clothing item laid flat or on mannequin. Indian fashion style, detailed texture visible.`;
+    const genderContext = gender?.toLowerCase().includes('male') || gender?.toLowerCase().includes('man')
+      ? "men's fashion, male model or mannequin"
+      : gender?.toLowerCase().includes('female') || gender?.toLowerCase().includes('woman')
+      ? "women's fashion, female model or mannequin"
+      : "fashion";
+
+    const prompt = `Professional fashion product photography of ${outfitName} for ${genderContext}. ${description}. Colors: ${colors?.join(', ')}. Styled for ${occasion || 'casual wear'}. Clean white background, high quality studio shot, no text, clothing item on mannequin. Indian fashion style, detailed fabric texture visible.`;
 
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
