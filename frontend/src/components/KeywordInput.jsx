@@ -31,20 +31,7 @@ export default function KeywordInput({ onPredict, loading }) {
   const [keywords, setKeywords] = useState(["", "", "", "", ""]);
   const [focused, setFocused] = useState(null);
 
-  // 🔥 CURSOR GLOW
-  useEffect(() => {
-    const glow = document.querySelector(".cursor-glow");
-
-    const move = (e) => {
-      if (glow) {
-        glow.style.left = e.clientX + "px";
-        glow.style.top = e.clientY + "px";
-      }
-    };
-
-    window.addEventListener("mousemove", move);
-    return () => window.removeEventListener("mousemove", move);
-  }, []);
+  
 
   const handleChange = (i, val) => {
     const updated = [...keywords];
@@ -72,9 +59,6 @@ export default function KeywordInput({ onPredict, loading }) {
       boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
       padding: 28,
     }}>
-
-      {/* 🌈 CURSOR GLOW */}
-      <div className="cursor-glow" />
 
       {/* 🎨 NOISE TEXTURE */}
       <div style={{
@@ -236,20 +220,7 @@ export default function KeywordInput({ onPredict, loading }) {
         {loading ? "Analyzing..." : "Forecast Trends →"}
       </button>
 
-      {/* Styles */}
-      <style>{`
-        .cursor-glow {
-          position: fixed;
-          width: 300px;
-          height: 300px;
-          background: radial-gradient(circle, rgba(99,102,241,0.15), transparent 70%);
-          border-radius: 50%;
-          pointer-events: none;
-          transform: translate(-50%, -50%);
-          z-index: 0;
-        }
-      `}</style>
-
+    
     </div>
   );
 }
